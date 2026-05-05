@@ -185,7 +185,7 @@ export default async function AdminDashboard({
           </div>
         ) : (
           <div className="divide-y divide-[#E2E8F0]">
-            {ticketsRecientes.map((ticket) => {
+            {ticketsRecientes.map((ticket: any) => {
               const st = STATUS_COLORS[ticket.status] ?? STATUS_COLORS.NUEVO
               return (
                 <div
