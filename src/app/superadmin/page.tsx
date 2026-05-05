@@ -1,22 +1,24 @@
-import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { SignOutButton } from '@clerk/nextjs'
-
 
 export default async function SuperAdminPanel() {
-  const clerkUser = await currentUser()
-  if (!clerkUser) redirect('/sign-in')
+  const user = await getSession()
+  if (!user) redirect('/sign-in')
+  if (user.role !== 'SUPERADMIN') redirect('/dashboard')
 
-  const user = await prisma.user.findUnique({
-    where: { clerkId: clerkUser.id },
-  })
-
-  if (!user || user.role !== 'SUPERADMIN') redirect('/dashboard')
-
-  const totalOrgs = await prisma.organization.count()
+  const totalOrgs  = await prisma.organization.count()
   const activeOrgs = await prisma.organization.count({ where: { isActive: true } })
   const totalUsers = await prisma.user.count()
+
+  const handleLogout = async () => {
+    'use server'
+    const { cookies } = await import('next/headers')
+    const { prisma: db } = await import('@/lib/prisma')
+    const token = cookies().get('kotta-session')?.value
+    if (token) await db.session.deleteMany({ where: { token } })
+    cookies().delete('kotta-session')
+  }
 
   return (
     <div className="min-h-screen bg-[#0F1F34]">
@@ -33,6 +35,7 @@ export default async function SuperAdminPanel() {
             <h1 className="font-display text-xl text-white">Super Admin</h1>
           </div>
         </div>
+
         <div className="grid grid-cols-3 gap-4 mb-8">
           {[
             { label: 'Condominios totales', value: totalOrgs,  color: '#4FA8E8' },
@@ -45,19 +48,18 @@ export default async function SuperAdminPanel() {
             </div>
           ))}
         </div>
+
         <div className="bg-[#1E3A5F] rounded-xl p-5 border border-white/10 flex items-center justify-between">
           <p className="text-sm text-[#8BA8C4]">
             Bienvenido, {user.name}. Panel de control global de KOTTA.
           </p>
-          <SignOutButton>
-            <button className="text-xs text-[#8BA8C4] hover:text-white border border-white/20 px-4 py-2 rounded-lg transition-colors">
+          <form action={handleLogout}>
+            <button type="submit" className="text-xs text-[#8BA8C4] hover:text-white border border-white/20 px-4 py-2 rounded-lg transition-colors">
               Cerrar sesión
             </button>
-          </SignOutButton>
+          </form>
         </div>
       </div>
     </div>
-
-    
   )
 }
