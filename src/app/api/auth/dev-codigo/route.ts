@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// SOLO PARA DESARROLLO — eliminar antes de producción
 export async function GET(req: Request) {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' && process.env.DEV_MODE !== 'true') {
     return NextResponse.json({ error: 'No disponible' }, { status: 404 })
   }
 
