@@ -1,0 +1,324 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  VECINO
+  PROVEEDOR
+  GUARDIA
+}
+
+enum TicketStatus {
+  NUEVO
+  EN_REVISION
+  ASIGNADO
+  EN_PROCESO
+  RESUELTO
+  CERRADO
+}
+
+enum TicketCategory {
+  PLOMERIA
+  ELECTRICIDAD
+  HERRERIA
+  JARDINERIA
+  LIMPIEZA
+  SEGURIDAD
+  INFRAESTRUCTURA
+  OTRO
+}
+
+enum WorkOrderStatus {
+  PENDIENTE
+  EN_PROCESO
+  COMPLETADA
+  CANCELADA
+}
+
+enum PaymentStatus {
+  PENDIENTE
+  PAGADO
+  VENCIDO
+}
+
+enum AssetStatus {
+  OK
+  REVISION
+  URGENTE
+  INACTIVO
+}
+
+enum AssetCategory {
+  BOMBA
+  PORTON
+  ILUMINACION
+  AREA_COMUN
+  SISTEMA_ELECTRICO
+  CISTERNA
+  OTRO
+}
+
+enum VisitorType {
+  PROVEEDOR
+  VISITA
+  DELIVERY
+  OTRO
+}
+
+enum ReservationStatus {
+  PENDIENTE
+  CONFIRMADA
+  CANCELADA
+}
+
+// ─── Organization ────────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users      User[]
+  tickets    Ticket[]
+  workOrders WorkOrder[]
+  assets     Asset[]
+  payments   Payment[]
+  accessLogs AccessLog[]
+  amenities  Amenity[]
+
+  @@map("organizations")
+}
+
+// ─── User ────────────────────────────────────────────────────
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  name        String
+  phone       String?
+  role        Role
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orgId       String?
+  org         Organization? @relation(fields: [orgId], references: [id])
+
+  houseNumber String?
+
+  ticketsReported    Ticket[]    @relation("ReportedBy")
+  workOrdersAssigned WorkOrder[] @relation("AssignedTo")
+  payments           Payment[]
+  accessLogsGuard    AccessLog[] @relation("GuardLog")
+  reservations       AmenityReservation[]
+  sessions           Session[]
+
+  @@map("users")
+}
+
+// ─── Ticket ──────────────────────────────────────────────────
+
+model Ticket {
+  id          String         @id @default(cuid())
+  folio       String
+  title       String
+  description String
+  status      TicketStatus   @default(NUEVO)
+  category    TicketCategory @default(OTRO)
+  photoUrl    String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  resolvedAt  DateTime?
+
+  orgId        String
+  org          Organization @relation(fields: [orgId], references: [id])
+
+  reportedById String
+  reportedBy   User   @relation("ReportedBy", fields: [reportedById], references: [id])
+
+  workOrder WorkOrder?
+
+  @@unique([orgId, folio])
+  @@map("tickets")
+}
+
+// ─── WorkOrder ───────────────────────────────────────────────
+
+model WorkOrder {
+  id             String          @id @default(cuid())
+  status         WorkOrderStatus @default(PENDIENTE)
+  description    String?
+  cost           Decimal?        @db.Decimal(10, 2)
+  beforePhotoUrl String?
+  afterPhotoUrl  String?
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  closedAt       DateTime?
+
+  orgId      String
+  org        Organization @relation(fields: [orgId], references: [id])
+
+  ticketId   String    @unique
+  ticket     Ticket    @relation(fields: [ticketId], references: [id])
+
+  providerId String
+  provider   User      @relation("AssignedTo", fields: [providerId], references: [id])
+
+  accessLog  AccessLog?
+
+  @@map("work_orders")
+}
+
+// ─── Asset ───────────────────────────────────────────────────
+
+model Asset {
+  id              String        @id @default(cuid())
+  name            String
+  category        AssetCategory @default(OTRO)
+  status          AssetStatus   @default(OK)
+  location        String?
+  description     String?
+  lastMaintenance DateTime?
+  nextMaintenance DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  orgId String
+  org   Organization @relation(fields: [orgId], references: [id])
+
+  @@map("assets")
+}
+
+// ─── Payment ─────────────────────────────────────────────────
+
+model Payment {
+  id        String        @id @default(cuid())
+  amount    Decimal       @db.Decimal(10, 2)
+  status    PaymentStatus @default(PENDIENTE)
+  month     Int
+  year      Int
+  paidAt    DateTime?
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  orgId  String
+  org    Organization @relation(fields: [orgId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([orgId, userId, month, year])
+  @@map("payments")
+}
+
+// ─── AccessLog ───────────────────────────────────────────────
+
+model AccessLog {
+  id          String      @id @default(cuid())
+  visitorName String
+  visitorType VisitorType @default(VISITA)
+  entryTime   DateTime    @default(now())
+  exitTime    DateTime?
+  notes       String?
+  createdAt   DateTime    @default(now())
+
+  orgId   String
+  org     Organization @relation(fields: [orgId], references: [id])
+
+  guardId String
+  guard   User   @relation("GuardLog", fields: [guardId], references: [id])
+
+  workOrderId String?   @unique
+  workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  @@map("access_logs")
+}
+
+// ─── Amenity ─────────────────────────────────────────────────
+
+model Amenity {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  capacity    Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  orgId String
+  org   Organization @relation(fields: [orgId], references: [id])
+
+  reservations AmenityReservation[]
+
+  @@map("amenities")
+}
+
+// ─── AmenityReservation ──────────────────────────────────────
+
+model AmenityReservation {
+  id        String            @id @default(cuid())
+  date      DateTime
+  startTime String
+  endTime   String
+  status    ReservationStatus @default(PENDIENTE)
+  notes     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  amenityId String
+  amenity   Amenity @relation(fields: [amenityId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("amenity_reservations")
+}
+
+// ─── Session ─────────────────────────────────────────────────
+// Sesiones activas de usuarios autenticados
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("sessions")
+}
+
+// ─── VerificationCode ────────────────────────────────────────
+// Códigos 2FA para registro, login e invitaciones
+
+model VerificationCode {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  type      CodeType
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("verification_codes")
+}
+
+enum CodeType {
+  REGISTRO
+  LOGIN
+  INVITACION
+}
