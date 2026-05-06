@@ -15,6 +15,7 @@ type Orden = {
     title: string
     description: string
     category: string
+    photoUrl: string | null
     reportedBy: { name: string; houseNumber: string | null }
   }
 }
@@ -39,9 +40,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function OrdenesProveedor({ ordenes }: { ordenes: Orden[] }) {
   const router    = useRouter()
-  const [selected, setSelected]     = useState<Orden | null>(null)
-  const [loading, setLoading]       = useState(false)
-  const [uploading, setUploading]   = useState(false)
+  const [selected, setSelected]   = useState<Orden | null>(null)
+  const [loading, setLoading]     = useState(false)
+  const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleIniciar = async (ordenId: string) => {
@@ -231,85 +232,101 @@ export default function OrdenesProveedor({ ordenes }: { ordenes: Orden[] }) {
                 </div>
               </div>
 
-              {/* Foto antes */}
-              {selected.beforePhotoUrl && (
+              {/* Fotos lado a lado */}
+              <div>
+                <p className="text-xs text-[#6B7A99] mb-3">Evidencia fotográfica</p>
+                <div className="grid grid-cols-2 gap-3">
+
+                  {/* Foto Antes */}
+                  <div>
+                    <p className="text-xs text-[#6B7A99] mb-1.5">Antes</p>
+                    {selected.ticket.photoUrl ? (
+                      <img
+                        src={selected.ticket.photoUrl}
+                        alt="Antes"
+                        className="w-full aspect-square object-cover rounded-xl border border-[#E2E8F0]"
+                      />
+                    ) : (
+                      <div className="w-full aspect-square bg-[#F1F5F9] rounded-xl border border-[#E2E8F0] flex flex-col items-center justify-center gap-1">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                          <rect x="3" y="3" width="18" height="18" rx="3" stroke="#CBD5E1" strokeWidth="1.5" fill="none"/>
+                          <circle cx="8.5" cy="8.5" r="1.5" fill="#CBD5E1"/>
+                          <path d="M3 15l5-5 4 4 3-3 6 6" stroke="#CBD5E1" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                        </svg>
+                        <p className="text-[10px] text-[#CBD5E1]">Sin foto</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Foto Después */}
+                  <div>
+                    <p className="text-xs text-[#1DB87E] mb-1.5">Después</p>
+                    {selected.afterPhotoUrl ? (
+                      <img
+                        src={selected.afterPhotoUrl}
+                        alt="Después"
+                        className="w-full aspect-square object-cover rounded-xl border border-[#9FE1CB]"
+                      />
+                    ) : (
+                      <div className="w-full aspect-square bg-[#E6F9F1] rounded-xl border border-[#9FE1CB] flex flex-col items-center justify-center gap-1">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                          <rect x="3" y="3" width="18" height="18" rx="3" stroke="#9FE1CB" strokeWidth="1.5" fill="none"/>
+                          <circle cx="8.5" cy="8.5" r="1.5" fill="#9FE1CB"/>
+                          <path d="M3 15l5-5 4 4 3-3 6 6" stroke="#9FE1CB" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                        </svg>
+                        <p className="text-[10px] text-[#9FE1CB]">Pendiente</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Subir foto después */}
+              {!selected.afterPhotoUrl && selected.status !== 'CANCELADA' && (
                 <div>
-                  <p className="text-xs text-[#6B7A99] mb-2">Foto del problema</p>
-                  <img
-                    src={selected.beforePhotoUrl}
-                    alt="Antes"
-                    className="w-full rounded-xl border border-[#E2E8F0] object-cover max-h-48"
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={() => handleSubirFoto(selected.id)}
                   />
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading || selected.status === 'PENDIENTE'}
+                    className="w-full border-2 border-dashed border-[#C5D5EE] rounded-xl py-6 flex flex-col items-center gap-2 hover:border-[#4FA8E8] hover:bg-[#E8F4FD] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {uploading ? (
+                      <p className="text-sm font-medium text-[#4FA8E8]">Subiendo foto...</p>
+                    ) : (
+                      <>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                          <rect x="3" y="3" width="18" height="18" rx="3" stroke="#4FA8E8" strokeWidth="1.8" fill="none"/>
+                          <circle cx="8.5" cy="8.5" r="1.5" fill="#4FA8E8"/>
+                          <path d="M3 15l5-5 4 4 3-3 6 6" stroke="#4FA8E8" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+                        </svg>
+                        <p className="text-sm font-medium text-[#4FA8E8]">
+                          {selected.status === 'PENDIENTE'
+                            ? 'Primero marca la orden como iniciada'
+                            : 'Subir foto del trabajo terminado'}
+                        </p>
+                        {selected.status !== 'PENDIENTE' && (
+                          <p className="text-xs text-[#6B7A99]">Requerida para completar la orden</p>
+                        )}
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
 
-              {/* Evidencia */}
-              <div>
-                <p className="text-xs text-[#6B7A99] mb-2">
-                  Foto del trabajo terminado
-                  {!selected.afterPhotoUrl && (
-                    <span className="text-[#E8503A] ml-1">* Requerida para completar</span>
-                  )}
-                </p>
-
-                {selected.afterPhotoUrl ? (
-                  <div>
-                    <img
-                      src={selected.afterPhotoUrl}
-                      alt="Después"
-                      className="w-full rounded-xl border border-[#9FE1CB] object-cover max-h-48"
-                    />
-                    <p className="text-xs text-[#1DB87E] mt-2 flex items-center gap-1">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                        <path d="M5 13l4 4L19 7" stroke="#1DB87E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Evidencia subida correctamente
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <input
-                      ref={fileRef}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={() => handleSubirFoto(selected.id)}
-                    />
-                    <button
-                      onClick={() => fileRef.current?.click()}
-                      disabled={uploading || selected.status === 'PENDIENTE'}
-                      className="w-full border-2 border-dashed border-[#C5D5EE] rounded-xl py-8 flex flex-col items-center gap-2 hover:border-[#4FA8E8] hover:bg-[#E8F4FD] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {uploading ? (
-                        <p className="text-sm font-medium text-[#4FA8E8]">Subiendo foto...</p>
-                      ) : (
-                        <>
-                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                            <rect x="3" y="3" width="18" height="18" rx="3" stroke="#4FA8E8" strokeWidth="1.8" fill="none"/>
-                            <circle cx="8.5" cy="8.5" r="1.5" fill="#4FA8E8"/>
-                            <path d="M3 15l5-5 4 4 3-3 6 6" stroke="#4FA8E8" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
-                          </svg>
-                          <p className="text-sm font-medium text-[#4FA8E8]">Tomar o subir foto</p>
-                          <p className="text-xs text-[#6B7A99]">
-                            {selected.status === 'PENDIENTE'
-                              ? 'Primero marca la orden como iniciada'
-                              : 'Foto del trabajo completado'}
-                          </p>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-
               {/* Acciones */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-3 pt-1">
                 {selected.status === 'PENDIENTE' && (
                   <button
                     onClick={() => handleIniciar(selected.id)}
                     disabled={loading}
-                    className="w-full py-3.5 text-sm font-medium text-white rounded-xl transition-colors disabled:opacity-50"
+                    className="w-full py-3.5 text-sm font-medium text-white rounded-xl transition-all disabled:opacity-50"
                     style={{ background: '#1DB87E' }}
                   >
                     {loading ? 'Iniciando...' : '✓ Marcar como iniciada'}
@@ -324,10 +341,13 @@ export default function OrdenesProveedor({ ordenes }: { ordenes: Orden[] }) {
                   </div>
                 )}
 
-                {selected.status === 'EN_PROCESO' && selected.afterPhotoUrl && (
+                {selected.afterPhotoUrl && (
                   <div className="bg-[#E6F9F1] rounded-xl px-4 py-3">
-                    <p className="text-xs text-[#0D7A4E]">
-                      ✓ Orden completada con evidencia fotográfica.
+                    <p className="text-xs text-[#0D7A4E] flex items-center gap-1.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 13l4 4L19 7" stroke="#0D7A4E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Orden completada con evidencia fotográfica.
                     </p>
                   </div>
                 )}

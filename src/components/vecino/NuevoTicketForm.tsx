@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 const CATEGORIAS = [
@@ -25,8 +25,10 @@ export default function NuevoTicketForm({
   coto: string
   houseNumber: string | null
 }) {
-  const router  = useRouter()
+  const router    = useRouter()
+  const fileRef   = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
+  const [foto, setFoto]       = useState<File | null>(null)
   const [form, setForm] = useState({
     title:       '',
     description: '',
@@ -37,10 +39,17 @@ export default function NuevoTicketForm({
     if (!form.title || !form.description) return
     setLoading(true)
     try {
-      const res = await fetch('/api/tickets/crear', {
+      const formData = new FormData()
+      formData.append('title',       form.title)
+      formData.append('description', form.description)
+      formData.append('category',    form.category)
+      formData.append('userId',      userId)
+      formData.append('orgId',       orgId)
+      if (foto) formData.append('foto', foto)
+
+      const res  = await fetch('/api/tickets/crear', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, userId, orgId }),
+        body:   formData,
       })
       const data = await res.json()
       if (data.ok) {
@@ -94,6 +103,54 @@ export default function NuevoTicketForm({
         />
       </div>
 
+      {/* Foto del problema */}
+      <div>
+        <label className="text-xs text-[#6B7A99] mb-1.5 block">
+          Foto del problema (opcional)
+        </label>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => setFoto(e.target.files?.[0] ?? null)}
+        />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="w-full border-2 border-dashed border-[#C5D5EE] rounded-xl py-5 flex flex-col items-center gap-2 hover:border-[#4FA8E8] hover:bg-[#E8F4FD] transition-all"
+        >
+          {foto ? (
+            <div className="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M5 13l4 4L19 7" stroke="#1DB87E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <p className="text-sm font-medium text-[#1DB87E]">{foto.name}</p>
+            </div>
+          ) : (
+            <>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="3" width="18" height="18" rx="3" stroke="#4FA8E8" strokeWidth="1.8" fill="none"/>
+                <circle cx="8.5" cy="8.5" r="1.5" fill="#4FA8E8"/>
+                <path d="M3 15l5-5 4 4 3-3 6 6" stroke="#4FA8E8" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+              </svg>
+              <p className="text-sm text-[#4FA8E8] font-medium">Agregar foto del problema</p>
+              <p className="text-xs text-[#6B7A99]">Toca para tomar o seleccionar una foto</p>
+            </>
+          )}
+        </button>
+        {foto && (
+          <button
+            type="button"
+            onClick={() => setFoto(null)}
+            className="text-xs text-[#E8503A] hover:underline mt-1.5"
+          >
+            Quitar foto
+          </button>
+        )}
+      </div>
+
       {houseNumber && (
         <div className="bg-[#F7F9FC] rounded-xl px-4 py-3 border border-[#E2E8F0]">
           <p className="text-xs text-[#6B7A99]">
@@ -125,6 +182,7 @@ export default function NuevoTicketForm({
           {loading ? 'Enviando...' : 'Enviar reporte'}
         </button>
       </div>
+
     </div>
   )
 }
