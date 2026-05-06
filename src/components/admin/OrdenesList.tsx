@@ -15,7 +15,7 @@ type Orden = {
   status: string
   description: string | null
   cost: any
-  beforePhotoUrl: string | null
+  beforePhotoUrl: string | null // Podrías eliminar este eventualmente si ya no se usa
   afterPhotoUrl: string | null
   notes: string | null
   createdAt: Date
@@ -24,6 +24,7 @@ type Orden = {
     folio: string
     title: string
     reportedBy: { name: string; houseNumber: string | null }
+    photoUrl: string | null // ← Línea agregada/verificada
   }
   provider: { name: string }
 }
@@ -233,41 +234,42 @@ export default function OrdenesList({
               </div>
 
               {/* Fotos evidencia */}
-              {(selected.beforePhotoUrl || selected.afterPhotoUrl) && (
-                <div>
-                  <p className="text-xs text-[#6B7A99] mb-2">Evidencia fotográfica</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-[#6B7A99] mb-1.5">Antes</p>
-                      {selected.beforePhotoUrl ? (
-                        <img
-                          src={selected.beforePhotoUrl}
-                          alt="Antes"
-                          className="w-full aspect-square object-cover rounded-xl border border-[#E2E8F0]"
-                        />
-                      ) : (
-                        <div className="w-full aspect-square bg-[#F1F5F9] rounded-xl border border-[#E2E8F0] flex items-center justify-center">
-                          <p className="text-xs text-[#C5D5EE]">Sin foto</p>
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-xs text-[#1DB87E] mb-1.5">Después</p>
-                      {selected.afterPhotoUrl ? (
-                        <img
-                          src={selected.afterPhotoUrl}
-                          alt="Después"
-                          className="w-full aspect-square object-cover rounded-xl border border-[#9FE1CB]"
-                        />
-                      ) : (
-                        <div className="w-full aspect-square bg-[#E6F9F1] rounded-xl border border-[#9FE1CB] flex items-center justify-center">
-                          <p className="text-xs text-[#9FE1CB]">Pendiente</p>
-                        </div>
-                      )}
-                    </div>
+              <div>
+                <p className="text-xs text-[#6B7A99] mb-2">Evidencia fotográfica</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Columna ANTES (Ticket original) */}
+                  <div>
+                    <p className="text-xs text-[#6B7A99] mb-1.5">Antes</p>
+                    {selected.ticket.photoUrl ? (
+                      <img
+                        src={selected.ticket.photoUrl}
+                        alt="Antes"
+                        className="w-full aspect-square object-cover rounded-xl border border-[#E2E8F0]"
+                      />
+                    ) : (
+                      <div className="w-full aspect-square bg-[#F1F5F9] rounded-xl border border-[#E2E8F0] flex items-center justify-center">
+                        <p className="text-xs text-[#C5D5EE]">Sin foto</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Columna DESPUÉS (Orden finalizada) */}
+                  <div>
+                    <p className="text-xs text-[#1DB87E] mb-1.5">Después</p>
+                    {selected.afterPhotoUrl ? (
+                      <img
+                        src={selected.afterPhotoUrl}
+                        alt="Después"
+                        className="w-full aspect-square object-cover rounded-xl border border-[#9FE1CB]"
+                      />
+                    ) : (
+                      <div className="w-full aspect-square bg-[#E6F9F1] rounded-xl border border-[#9FE1CB] flex items-center justify-center">
+                        <p className="text-xs text-[#9FE1CB]">Pendiente</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Costo y notas */}
               {selected.status !== 'COMPLETADA' && selected.status !== 'CANCELADA' && (
