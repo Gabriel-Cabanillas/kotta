@@ -1,3 +1,15 @@
+/**
+ * Atiende el primer paso del inicio de sesión de Kotta.
+ *
+ * Contiene la validación de credenciales, la verificación de usuario activo, la
+ * generación de un código temporal de login y el envío del código por correo.
+ *
+ * Se relaciona con `src/app/sign-in/page.tsx`, `src/app/verificar/page.tsx`,
+ * `src/lib/prisma.ts`, `src/lib/email.ts` y `VerificationCode` en Prisma.
+ *
+ * Existe para separar la validación de contraseña de la creación de sesión, que
+ * ocurre solo después de confirmar el código enviado al usuario.
+ */
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'

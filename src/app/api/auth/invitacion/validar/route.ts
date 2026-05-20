@@ -1,3 +1,16 @@
+/**
+ * Valida que un token de invitación pueda usarse para activar una cuenta.
+ *
+ * Contiene la lectura del token desde la URL y la consulta del código de tipo
+ * `INVITACION` que aún no ha sido usado ni expirado.
+ *
+ * Se relaciona con `src/app/invitacion/page.tsx`,
+ * `src/app/api/auth/invitacion/route.ts`,
+ * `src/app/api/auth/invitacion/activar/route.ts` y `VerificationCode` en Prisma.
+ *
+ * Existe para mostrar el formulario de activación solo cuando la invitación sigue
+ * siendo válida.
+ */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 

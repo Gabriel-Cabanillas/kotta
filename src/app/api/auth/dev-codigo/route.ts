@@ -1,3 +1,17 @@
+/**
+ * Expone el último código de verificación disponible para entornos de desarrollo.
+ *
+ * Contiene una ruta GET protegida por ambiente que consulta el código pendiente
+ * más reciente de un correo para facilitar pruebas cuando el envío de email no
+ * está disponible.
+ *
+ * Se relaciona con `src/app/api/auth/login/route.ts`,
+ * `src/app/api/auth/registro/route.ts`, `src/app/verificar/page.tsx` y
+ * `VerificationCode` en Prisma.
+ *
+ * Existe para desbloquear pruebas locales del flujo de verificación sin alterar
+ * el comportamiento de producción.
+ */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 

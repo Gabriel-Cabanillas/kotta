@@ -1,3 +1,16 @@
+/**
+ * Renderiza la pantalla de inicio de sesión de Kotta.
+ *
+ * Contiene el formulario cliente para capturar correo y contraseña, validar los
+ * campos mínimos y solicitar a la API el envío de un código de verificación de
+ * login antes de entrar al dashboard.
+ *
+ * Se relaciona con `src/app/api/auth/login/route.ts`, `src/app/verificar/page.tsx`
+ * y `src/app/dashboard/page.tsx`, que completa la verificación y redirige por rol.
+ *
+ * Existe para separar la captura inicial de credenciales del segundo paso de
+ * autenticación usado por Kotta.
+ */
 'use client'
 
 import { useState } from 'react'
