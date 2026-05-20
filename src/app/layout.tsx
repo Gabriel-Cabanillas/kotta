@@ -1,3 +1,15 @@
+/**
+ * Define el layout raíz compartido por toda la aplicación Kotta.
+ *
+ * Contiene la metadata pública del sitio, la configuración base de idioma y la
+ * carga global de estilos para todas las rutas del App Router.
+ *
+ * Se relaciona con `src/app/globals.css`, la landing page en `src/app/page.tsx`
+ * y todos los layouts y páginas anidadas dentro de `src/app`.
+ *
+ * Existe para establecer el contenedor HTML común y los metadatos iniciales que
+ * Next.js aplica en cualquier experiencia del producto.
+ */
 import type { Metadata } from 'next'
 import './globals.css'
 

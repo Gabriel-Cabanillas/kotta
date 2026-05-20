@@ -1,3 +1,15 @@
+// Define el modelo de datos principal de Kotta para Prisma.
+//
+// Contiene las entidades, relaciones, enums y restricciones que sostienen la
+// operación multi-coto: organizaciones, usuarios, sesiones, tickets, órdenes,
+// pagos, activos, accesos, amenidades y códigos de verificación.
+//
+// Se relaciona con `src/lib/prisma.ts`, las migraciones en `prisma/migrations`,
+// las rutas API bajo `src/app/api/*` y las páginas que consultan datos del
+// condominio según el rol del usuario.
+//
+// Existe para que la base de datos comparta un contrato explícito con el código
+// de aplicación y para aislar la lógica de Kotta por organización.
 generator client {
   provider = "prisma-client-js"
 }
