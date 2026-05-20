@@ -1,3 +1,17 @@
+/**
+ * Crea y envía invitaciones para usuarios dentro de un coto existente.
+ *
+ * Contiene la validación del ADMIN autenticado, la creación de un usuario
+ * inactivo con contraseña temporal, la generación del token de invitación y el
+ * envío del correo de activación.
+ *
+ * Se relaciona con `src/lib/auth.ts`, `src/lib/email.ts`, `src/lib/prisma.ts`,
+ * `src/app/invitacion/page.tsx` y los modelos `User`, `Organization` y
+ * `VerificationCode`.
+ *
+ * Existe para que la administración incorpore vecinos, proveedores u otros roles
+ * sin usar el registro público de nuevos condominios.
+ */
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'

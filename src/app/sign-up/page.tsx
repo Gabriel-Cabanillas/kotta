@@ -1,3 +1,17 @@
+/**
+ * Renderiza el registro inicial de un condominio en Kotta.
+ *
+ * Contiene el formulario cliente para crear una organización y su administrador,
+ * validar contraseña y enviar la solicitud de registro antes de pasar al flujo de
+ * verificación por código.
+ *
+ * Se relaciona con `src/app/api/auth/registro/route.ts`,
+ * `src/app/verificar/page.tsx` y el modelo `Organization` definido en
+ * `prisma/schema.prisma`.
+ *
+ * Existe para permitir que un nuevo coto entre al sistema con una cuenta ADMIN
+ * pendiente de verificación.
+ */
 'use client'
 
 import { useState } from 'react'

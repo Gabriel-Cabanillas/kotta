@@ -1,3 +1,15 @@
+/**
+ * Renderiza el segundo paso de autenticación por código en Kotta.
+ *
+ * Contiene la captura del código de seis dígitos, el autoenvío cuando se completa
+ * y la llamada a la API que valida el código para crear la sesión del usuario.
+ *
+ * Se relaciona con `src/app/sign-in/page.tsx`, `src/app/sign-up/page.tsx`,
+ * `src/app/api/auth/verificar/route.ts` y `src/app/dashboard/page.tsx`.
+ *
+ * Existe para unificar la verificación de identidad después de login o registro
+ * antes de permitir el acceso a las áreas privadas.
+ */
 'use client'
 
 import { useState, useRef, useEffect } from 'react'

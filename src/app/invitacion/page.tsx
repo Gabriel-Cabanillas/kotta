@@ -1,3 +1,17 @@
+/**
+ * Renderiza la activación de cuentas invitadas a un coto en Kotta.
+ *
+ * Contiene la validación cliente del token de invitación, el formulario para
+ * crear contraseña y el envío de activación antes de continuar al flujo de
+ * verificación por código.
+ *
+ * Se relaciona con `src/app/api/auth/invitacion/validar/route.ts`,
+ * `src/app/api/auth/invitacion/activar/route.ts`,
+ * `src/app/verificar/page.tsx` y las invitaciones enviadas desde el panel admin.
+ *
+ * Existe para que usuarios creados por invitación completen su alta sin pasar por
+ * el registro público de condominio.
+ */
 'use client'
 
 import { useState, useEffect } from 'react'

@@ -1,3 +1,17 @@
+/**
+ * Activa una cuenta creada por invitación dentro de Kotta.
+ *
+ * Contiene la validación del token de invitación, las reglas mínimas de
+ * contraseña, el hash de la contraseña final y la activación transaccional del
+ * usuario junto con el marcado del token como usado.
+ *
+ * Se relaciona con `src/app/invitacion/page.tsx`,
+ * `src/app/api/auth/invitacion/validar/route.ts`, `src/lib/prisma.ts` y los
+ * modelos `User` y `VerificationCode`.
+ *
+ * Existe para completar el alta de usuarios invitados antes de que inicien el
+ * flujo normal de verificación e ingreso.
+ */
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'

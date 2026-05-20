@@ -1,3 +1,16 @@
+/**
+ * Completa la verificación por código y crea la sesión de Kotta.
+ *
+ * Contiene la búsqueda del código vigente, su marcado como usado, la activación
+ * de usuarios registrados y la creación de la cookie `kotta-session`.
+ *
+ * Se relaciona con `src/app/verificar/page.tsx`, `src/lib/auth.ts`,
+ * `src/middleware.ts`, `src/lib/prisma.ts` y los modelos `Session` y
+ * `VerificationCode`.
+ *
+ * Existe para convertir un código válido en una sesión autenticada que luego
+ * `dashboard` puede redirigir según rol y organización.
+ */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'

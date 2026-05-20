@@ -1,3 +1,17 @@
+/**
+ * Atiende el registro público de un nuevo condominio en Kotta.
+ *
+ * Contiene la creación transaccional de la organización y su usuario ADMIN
+ * inicial, el hash de contraseña, la generación del slug del coto y el envío del
+ * código de verificación de registro.
+ *
+ * Se relaciona con `src/app/sign-up/page.tsx`, `src/app/verificar/page.tsx`,
+ * `src/lib/prisma.ts`, `src/lib/email.ts` y los modelos `Organization`, `User`
+ * y `VerificationCode`.
+ *
+ * Existe para iniciar el alta de un nuevo coto dejando al administrador inactivo
+ * hasta que confirme su correo.
+ */
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
