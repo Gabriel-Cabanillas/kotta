@@ -1,3 +1,16 @@
+/**
+ * Agrupa los correos transaccionales que Kotta envía desde el servidor.
+ *
+ * Contiene el envío de códigos de verificación para registro e inicio de sesión,
+ * además de invitaciones para activar usuarios dentro de una organización.
+ *
+ * Se relaciona con las rutas de autenticación en `src/app/api/auth/*`, con
+ * `VerificationCode` en `prisma/schema.prisma` y con las variables de entorno de
+ * Resend y de la URL pública de la aplicación.
+ *
+ * Existe para mantener en un solo lugar la integración con Resend y la plantilla
+ * base de los correos críticos del flujo de acceso a Kotta.
+ */
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)

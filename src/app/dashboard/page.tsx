@@ -1,3 +1,16 @@
+/**
+ * Redirige al usuario autenticado hacia la experiencia correcta dentro de Kotta.
+ *
+ * Contiene la resolución de sesión, el manejo de cuentas sin organización activa
+ * y la decisión de destino según el rol: superadmin, admin, vecino, proveedor o
+ * guardia.
+ *
+ * Se relaciona con `src/lib/auth.ts`, los layouts bajo `src/app/[coto]/*`,
+ * `src/app/superadmin/page.tsx` y las rutas públicas de autenticación.
+ *
+ * Existe como punto de entrada neutral después del login para separar el flujo
+ * de acceso de las rutas específicas por rol y por coto.
+ */
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 

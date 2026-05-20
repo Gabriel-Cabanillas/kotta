@@ -1,3 +1,16 @@
+/**
+ * Resuelve la sesión autenticada actual de Kotta desde la cookie del usuario.
+ *
+ * Contiene la lectura de `kotta-session`, la búsqueda de la sesión en base de
+ * datos, la validación de expiración y la carga del usuario junto con su
+ * organización.
+ *
+ * Se relaciona con `src/lib/prisma.ts`, `src/middleware.ts`, las rutas de
+ * `src/app/api/auth/*` y las páginas protegidas por rol bajo `src/app`.
+ *
+ * Existe para ofrecer una forma compartida de conocer quién está usando la app
+ * antes de renderizar dashboards, validar roles o ejecutar acciones privadas.
+ */
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 

@@ -1,3 +1,16 @@
+/**
+ * Protege las rutas privadas de Kotta antes de que lleguen a las páginas o APIs.
+ *
+ * Contiene la lista de rutas públicas, la detección de la cookie `kotta-session`
+ * y las redirecciones iniciales para usuarios autenticados o visitantes sin
+ * sesión.
+ *
+ * Se relaciona con `src/lib/auth.ts`, las rutas de `src/app/api/auth/*`, las
+ * páginas públicas de acceso y los dashboards protegidos bajo `src/app`.
+ *
+ * Existe para aplicar una primera barrera de navegación a nivel de Next.js y
+ * evitar que las secciones privadas se carguen sin una sesión presente.
+ */
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
