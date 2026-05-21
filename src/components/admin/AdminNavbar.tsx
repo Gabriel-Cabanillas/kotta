@@ -1,3 +1,12 @@
+/**
+ * Componente de barra superior del panel administrativo de Kotta.
+ * Contiene la identificacion del coto, el usuario administrador activo y la
+ * accion de cierre de sesion.
+ * Se relaciona con el layout de src/app/[coto]/admin y con la API
+ * /api/auth/logout para cerrar la sesion del administrador.
+ * Existe para mantener contexto de administracion visible en las paginas de
+ * gestion de usuarios, tickets, pagos, activos, ordenes y configuracion.
+ */
 'use client'
 
 import { useRouter } from 'next/navigation'

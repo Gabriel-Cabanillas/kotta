@@ -1,3 +1,12 @@
+/**
+ * Componente de navegacion lateral del panel administrativo de Kotta.
+ * Contiene los accesos principales del ADMIN hacia dashboard, tickets, ordenes,
+ * usuarios, activos, pagos y configuracion dentro del coto actual.
+ * Se relaciona con el layout de src/app/[coto]/admin, las paginas admin por
+ * seccion y las rutas construidas con el slug del coto recibido por props.
+ * Existe para dar estructura persistente al panel administrativo y sostener la
+ * gestion central de usuarios, tickets, pagos, activos, ordenes y configuracion.
+ */
 'use client'
 
 import { usePathname } from 'next/navigation'

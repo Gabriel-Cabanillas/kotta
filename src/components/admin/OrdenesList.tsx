@@ -1,3 +1,12 @@
+/**
+ * Componente de gestion de ordenes de trabajo del panel administrativo de Kotta.
+ * Contiene resumen por estado, filtros, detalle de ordenes, costos, notas y
+ * actualizacion de cierre o cancelacion.
+ * Se relaciona con la pagina admin de ordenes, los tickets asignados a
+ * proveedores y la API /api/ordenes/actualizar.
+ * Existe para que el ADMIN de seguimiento al trabajo de proveedores y mantenga
+ * sincronizado el flujo entre tickets y ordenes.
+ */
 'use client'
 
 import { useState } from 'react'

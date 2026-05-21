@@ -1,3 +1,12 @@
+/**
+ * Componente de gestion de pagos del panel administrativo de Kotta.
+ * Contiene resumen de cobranza, filtros por estado, registro de pagos y marcado
+ * rapido de pagos como pagados.
+ * Se relaciona con la pagina admin de pagos y con las APIs /api/pagos/crear y
+ * /api/pagos/actualizar.
+ * Existe para que el ADMIN controle la informacion financiera mensual del coto
+ * dentro del flujo de administracion del SaaS.
+ */
 'use client'
 
 import { useState } from 'react'

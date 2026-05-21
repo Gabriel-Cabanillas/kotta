@@ -1,3 +1,12 @@
+/**
+ * Componente de gestion de tickets del panel administrativo de Kotta.
+ * Contiene filtros por estado, listado de reportes del coto y el flujo para
+ * asignar tickets a proveedores.
+ * Se relaciona con la pagina admin de tickets, proveedores disponibles y la API
+ * /api/tickets/assign que crea ordenes de trabajo.
+ * Existe para que el ADMIN supervise incidencias y conecte tickets con ordenes
+ * dentro de la operacion del condominio.
+ */
 'use client'
 
 import { useState } from 'react'

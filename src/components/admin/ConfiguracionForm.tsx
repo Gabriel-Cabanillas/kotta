@@ -1,3 +1,12 @@
+/**
+ * Componente de configuracion del panel administrativo de Kotta.
+ * Contiene la edicion del nombre del condominio, visualizacion del slug, estado
+ * de la organizacion, plan activo y URLs por rol.
+ * Se relaciona con la pagina admin de configuracion y con la API
+ * /api/configuracion/actualizar.
+ * Existe para que el ADMIN mantenga datos basicos del coto y consulte los
+ * accesos principales de la estructura multi-rol.
+ */
 'use client'
 
 import { useState } from 'react'
