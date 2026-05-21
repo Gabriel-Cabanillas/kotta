@@ -1,3 +1,12 @@
+/**
+ * Pagina principal del panel de guardia dentro de un coto en Kotta.
+ * Contiene la vista base de bitacora diaria para el rol GUARDIA y prepara el
+ * espacio donde se muestran los accesos del condominio.
+ * Se relaciona con getSession y la ruta dinamica src/app/[coto]/guardia;
+ * [coto] representa el slug del condominio u organizacion.
+ * Existe para separar la operacion de seguridad dentro de la arquitectura
+ * multi-rol y multi-coto del SaaS, validando sesion, rol y pertenencia al coto.
+ */
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 

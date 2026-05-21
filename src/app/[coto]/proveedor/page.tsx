@@ -1,3 +1,12 @@
+/**
+ * Pagina principal del proveedor asignado a un coto dentro de Kotta.
+ * Contiene el panel de ordenes activas para el rol PROVEEDOR y muestra las
+ * tareas pendientes o en proceso asociadas al usuario.
+ * Se relaciona con getSession, prisma, ProveedorNavbar y OrdenesProveedor;
+ * [coto] representa el slug del condominio u organizacion.
+ * Existe para integrar proveedores en la arquitectura multi-rol y multi-coto
+ * del SaaS, validando sesion, rol y pertenencia al coto antes de listar ordenes.
+ */
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'

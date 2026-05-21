@@ -1,3 +1,12 @@
+/**
+ * Pagina principal del dashboard administrativo de un coto en Kotta.
+ * Contiene el resumen operativo para ADMIN: tickets, vecinos, pagos, activos
+ * urgentes y actividad reciente del condominio.
+ * Se relaciona con getSession, prisma y el layout de src/app/[coto]/admin;
+ * [coto] representa el slug del condominio u organizacion.
+ * Existe para documentar y ejecutar la entrada multi-rol y multi-coto del SaaS,
+ * validando sesion, rol ADMIN y pertenencia al coto antes de consultar datos.
+ */
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'

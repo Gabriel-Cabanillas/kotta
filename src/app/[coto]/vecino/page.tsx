@@ -1,3 +1,12 @@
+/**
+ * Pagina principal del dashboard de vecino dentro de un coto en Kotta.
+ * Contiene accesos rapidos y resumen personal del residente: reportes activos,
+ * pagos recientes y proxima reserva confirmada.
+ * Se relaciona con getSession, prisma, Link y el layout de src/app/[coto]/vecino;
+ * [coto] representa el slug del condominio u organizacion.
+ * Existe para materializar la experiencia multi-rol y multi-coto del SaaS,
+ * validando sesion, rol VECINO y pertenencia al coto antes de mostrar datos.
+ */
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'

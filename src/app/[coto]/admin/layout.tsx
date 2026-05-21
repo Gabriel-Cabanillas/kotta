@@ -1,3 +1,12 @@
+/**
+ * Layout base del area de administracion de un coto dentro de Kotta.
+ * Contiene la estructura principal del dashboard administrativo: sidebar,
+ * navbar y contenedor para las paginas hijas del rol ADMIN.
+ * Se relaciona con AdminSidebar, AdminNavbar, getSession y las paginas bajo
+ * src/app/[coto]/admin; [coto] representa el slug del condominio u organizacion.
+ * Existe para sostener la arquitectura multi-rol y multi-coto del SaaS,
+ * validando sesion, rol y pertenencia al coto antes de renderizar el area admin.
+ */
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import AdminSidebar from '@/components/admin/AdminSidebar'

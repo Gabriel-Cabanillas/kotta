@@ -1,3 +1,12 @@
+/**
+ * Layout base del area de vecino dentro de un coto de Kotta.
+ * Contiene la estructura compartida para las paginas del rol VECINO: navbar
+ * del residente y contenedor principal de su experiencia.
+ * Se relaciona con VecinoNavbar, getSession y las paginas bajo
+ * src/app/[coto]/vecino; [coto] representa el slug del condominio u organizacion.
+ * Existe para soportar la arquitectura multi-rol y multi-coto del SaaS,
+ * validando sesion, rol y pertenencia al coto antes de mostrar el area vecino.
+ */
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import VecinoNavbar from '@/components/vecino/VecinoNavbar'
