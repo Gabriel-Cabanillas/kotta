@@ -1,3 +1,12 @@
+/**
+ * Ruta API para actualizar configuracion basica de una organizacion en Kotta.
+ * Contiene la funcionalidad administrativa que modifica el nombre del coto u
+ * organizacion asociada al admin autenticado.
+ * Se relaciona con getSession, prisma y las pantallas de configuracion del
+ * panel administrativo.
+ * Existe para encapsular cambios de configuracion por coto, validando que el
+ * ADMIN solo actualice la organizacion a la que pertenece.
+ */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'

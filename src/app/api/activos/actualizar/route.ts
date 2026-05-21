@@ -1,3 +1,11 @@
+/**
+ * Ruta API para actualizar activos del condominio en Kotta.
+ * Contiene la funcionalidad administrativa que modifica datos de inventario,
+ * estado, ubicacion, descripcion y fechas de mantenimiento.
+ * Se relaciona con getSession, prisma y las pantallas de activos del admin.
+ * Existe para mantener el dominio de activos dentro del coto correcto,
+ * validando que el ADMIN pertenezca a la misma organizacion del activo.
+ */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'

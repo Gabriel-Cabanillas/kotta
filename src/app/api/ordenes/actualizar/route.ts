@@ -1,3 +1,12 @@
+/**
+ * Ruta API para actualizar ordenes de trabajo en Kotta.
+ * Contiene la funcionalidad administrativa que modifica estado, costo, notas y
+ * cierre de una orden, sincronizando tambien el estado del ticket relacionado.
+ * Se relaciona con getSession, prisma, tickets y los paneles administrativos de
+ * ordenes o proveedores.
+ * Existe para mantener consistente el flujo ticket-orden dentro de cada coto,
+ * validando que el ADMIN opere solo ordenes de su organizacion.
+ */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'

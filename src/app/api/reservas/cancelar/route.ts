@@ -1,3 +1,11 @@
+/**
+ * Ruta API para cancelar reservas de amenidades en Kotta.
+ * Contiene la funcionalidad que marca una reserva como CANCELADA cuando la
+ * solicita el mismo usuario que la creo.
+ * Se relaciona con getSession, prisma y las vistas de reservas del vecino.
+ * Existe para proteger el flujo de cancelacion del dominio de reservas,
+ * asegurando que cada vecino solo pueda cancelar sus propias reservas.
+ */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'

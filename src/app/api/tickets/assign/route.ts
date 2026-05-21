@@ -1,3 +1,12 @@
+/**
+ * Ruta API para asignar tickets a proveedores dentro de Kotta.
+ * Contiene la funcionalidad administrativa que crea una orden de trabajo y
+ * cambia el ticket a estado ASIGNADO en una transaccion.
+ * Se relaciona con getSession, prisma, tickets administrativos y ordenes de
+ * trabajo del proveedor.
+ * Existe para conectar el dominio de reportes con el dominio de ordenes,
+ * validando que solo admins del mismo coto puedan asignar tickets.
+ */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'

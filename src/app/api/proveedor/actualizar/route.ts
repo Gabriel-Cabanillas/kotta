@@ -1,3 +1,11 @@
+/**
+ * Ruta API para que un proveedor actualice una orden asignada en Kotta.
+ * Contiene la funcionalidad que permite cambiar el estado de una orden cuando
+ * pertenece al proveedor autenticado.
+ * Se relaciona con getSession, prisma y el panel del proveedor.
+ * Existe para separar las acciones del rol PROVEEDOR dentro del dominio de
+ * ordenes, validando que solo pueda modificar sus propias asignaciones.
+ */
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
