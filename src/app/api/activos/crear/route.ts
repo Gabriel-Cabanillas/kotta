@@ -1,3 +1,12 @@
+/**
+ * Ruta API para crear activos del condominio en Kotta.
+ * Contiene la funcionalidad administrativa que registra un activo con categoria,
+ * estado, ubicacion, descripcion y fechas de mantenimiento opcionales.
+ * Se relaciona con getSession, prisma y las pantallas de administracion de
+ * activos.
+ * Existe para alimentar el inventario operativo de cada coto, validando que el
+ * ADMIN solo cree activos dentro de su propia organizacion.
+ */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'

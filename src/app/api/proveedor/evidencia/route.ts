@@ -1,3 +1,11 @@
+/**
+ * Ruta API para subir evidencia de una orden de proveedor en Kotta.
+ * Contiene la funcionalidad que recibe una imagen, la sube a Cloudinary, marca
+ * la orden como COMPLETADA y resuelve el ticket asociado.
+ * Se relaciona con getSession, prisma, Cloudinary y el panel del proveedor.
+ * Existe para cerrar el flujo operativo de atencion con evidencia visual,
+ * validando que el proveedor autenticado sea el asignado a la orden.
+ */
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'

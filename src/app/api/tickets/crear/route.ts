@@ -1,3 +1,12 @@
+/**
+ * Ruta API para crear tickets de mantenimiento o reporte dentro de Kotta.
+ * Contiene la funcionalidad que recibe datos del reporte, valida pertenencia al
+ * coto, sube una foto opcional a Cloudinary y genera el folio del ticket.
+ * Se relaciona con getSession, prisma, Cloudinary y las paginas de tickets del
+ * vecino que consumen este endpoint.
+ * Existe para concentrar la entrada de incidencias del dominio operativo del
+ * SaaS, permitiendo que solo vecinos del coto creen reportes en su organizacion.
+ */
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'

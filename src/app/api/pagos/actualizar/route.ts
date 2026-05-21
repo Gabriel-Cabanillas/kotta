@@ -1,3 +1,11 @@
+/**
+ * Ruta API para actualizar el estado de un pago en Kotta.
+ * Contiene la funcionalidad administrativa que cambia el status y la fecha de
+ * pago de un registro existente.
+ * Se relaciona con getSession, prisma y las pantallas de cobranza del admin.
+ * Existe para controlar cambios financieros por organizacion, validando que el
+ * pago pertenezca al mismo coto del ADMIN autenticado.
+ */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'

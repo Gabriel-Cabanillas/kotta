@@ -1,3 +1,12 @@
+/**
+ * Ruta API para activar o desactivar usuarios de un coto en Kotta.
+ * Contiene la funcionalidad administrativa que cambia el campo isActive de un
+ * usuario existente.
+ * Se relaciona con getSession, prisma y las pantallas de administracion de
+ * usuarios.
+ * Existe para controlar el acceso de usuarios por organizacion, validando que
+ * el ADMIN solo modifique cuentas dentro de su propio coto.
+ */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'

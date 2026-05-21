@@ -1,3 +1,11 @@
+/**
+ * Ruta API para crear usuarios invitados dentro de un coto en Kotta.
+ * Contiene la funcionalidad administrativa que registra el usuario inactivo,
+ * genera token de invitacion y envia el correo para completar el acceso.
+ * Se relaciona con getSession, prisma, enviarInvitacion, bcrypt y crypto.
+ * Existe para administrar altas de usuarios por organizacion dentro del SaaS,
+ * validando que el ADMIN solo invite personas a su propio coto.
+ */
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { enviarInvitacion } from '@/lib/email'
