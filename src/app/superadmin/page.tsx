@@ -1,3 +1,12 @@
+/**
+ * Pagina principal del panel Super Admin global de Kotta.
+ * Contiene metricas generales del SaaS, como condominios totales, condominios
+ * activos, usuarios totales y la accion de cierre de sesion.
+ * Se relaciona con getSession, prisma, cookies y el flujo global fuera de [coto];
+ * a diferencia de las rutas por coto, administra la plataforma completa.
+ * Existe para completar la arquitectura multi-rol y multi-coto del SaaS,
+ * validando sesion y rol SUPERADMIN antes de mostrar informacion global.
+ */
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
