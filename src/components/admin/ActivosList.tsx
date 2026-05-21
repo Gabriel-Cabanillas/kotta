@@ -1,3 +1,12 @@
+/**
+ * Componente de gestion de activos del panel administrativo de Kotta.
+ * Contiene resumen por estado, filtros, alta y edicion de activos del
+ * condominio, incluyendo mantenimiento y ubicacion.
+ * Se relaciona con la pagina admin de activos y con las APIs
+ * /api/activos/crear y /api/activos/actualizar.
+ * Existe para que el ADMIN mantenga el inventario operativo del coto dentro de
+ * la administracion central de Kotta.
+ */
 'use client'
 
 import { useState } from 'react'

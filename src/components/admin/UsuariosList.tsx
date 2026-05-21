@@ -1,3 +1,12 @@
+/**
+ * Componente de gestion de usuarios del panel administrativo de Kotta.
+ * Contiene tabs por rol, listado de vecinos, proveedores y guardias, alta de
+ * usuarios invitados y activacion o desactivacion de cuentas.
+ * Se relaciona con la pagina admin de usuarios y con las APIs
+ * /api/usuarios/crear y /api/usuarios/toggle.
+ * Existe para que el ADMIN administre los usuarios de su coto desde la
+ * arquitectura multi-rol del SaaS.
+ */
 'use client'
 
 import { useState } from 'react'
