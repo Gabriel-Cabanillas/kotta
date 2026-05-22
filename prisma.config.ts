@@ -1,3 +1,9 @@
+/**
+ * Configura Prisma para conectar Kotta con la base de datos.
+ * Se relaciona con prisma/schema.prisma, las migraciones y el adaptador PostgreSQL.
+ * Existe para centralizar la URL directa y el adapter usado por Prisma en el proyecto.
+ */
+
 import path from 'path'
 import { defineConfig } from 'prisma/config'
 import { PrismaPg } from '@prisma/adapter-pg'
