@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * Seccion de funcionamiento de la landing publica.
+ * Contiene los pasos de activacion, registro de usuarios y operacion diaria del coto.
+ * Se relaciona con src/app/page.tsx, Problem y Features para explicar como se pasa
+ * del dolor operativo a una implementacion concreta.
+ * Existe dentro de Kotta para reducir friccion comercial mostrando que la adopcion
+ * del sistema es rapida y comprensible.
+ */
+
 import { useEffect, useRef } from 'react'
 
 const STEPS = [

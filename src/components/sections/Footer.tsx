@@ -1,3 +1,11 @@
+/**
+ * Pie de pagina de la landing publica.
+ * Contiene la marca, canales de contacto, enlaces internos del producto y referencias legales.
+ * Se relaciona con src/app/page.tsx, Navbar y las secciones ancladas de la landing.
+ * Existe dentro de Kotta para cerrar la presentacion comercial con contacto,
+ * navegacion secundaria y datos institucionales.
+ */
+
 export default function Footer() {
   const year = new Date().getFullYear()
 

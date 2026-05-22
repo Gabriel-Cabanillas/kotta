@@ -1,5 +1,13 @@
 'use client'
 
+/**
+ * Seccion de preguntas frecuentes de la landing publica.
+ * Contiene respuestas a objeciones comunes sobre usuarios, permanencia, activacion,
+ * uso web, datos, guardias, multiples condominios y soporte.
+ * Se relaciona con src/app/page.tsx, Pricing, CTAFinal y Navbar mediante el ancla FAQ.
+ * Existe dentro de Kotta para resolver dudas comerciales antes del cierre de conversion.
+ */
+
 import { useEffect, useRef, useState } from 'react'
 
 const FAQS = [

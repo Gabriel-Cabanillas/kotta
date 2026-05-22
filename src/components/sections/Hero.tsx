@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * Seccion inicial de impacto para la landing publica.
+ * Contiene la promesa principal, el primer CTA comercial y el mock visual del producto.
+ * Se relaciona con src/app/page.tsx, Navbar y las secciones posteriores que desarrollan
+ * el problema, el proceso y las funcionalidades.
+ * Existe dentro de Kotta para comunicar en el primer vistazo que la plataforma
+ * centraliza la operacion de condominios y abrir la ruta de conversion.
+ */
+
 import { useEffect, useRef } from 'react'
 
 export default function Hero() {

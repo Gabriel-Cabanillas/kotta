@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * Seccion de pilares narrativos de la landing publica.
+ * Contiene los argumentos centrales de valor: transparencia, gestion formal y control operativo.
+ * Se relaciona con src/app/page.tsx, Features y Pricing para reforzar por que el plan
+ * unico cubre la operacion completa del condominio.
+ * Existe dentro de Kotta para ordenar el discurso comercial en principios faciles
+ * de recordar y defender frente a clientes potenciales.
+ */
+
 import { useEffect, useRef } from 'react'
 
 const PILLARS = [

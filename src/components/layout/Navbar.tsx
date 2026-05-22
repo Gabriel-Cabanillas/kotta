@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * Navegacion fija de la landing publica.
+ * Contiene los enlaces a las secciones comerciales, el CTA principal y el menu movil.
+ * Se relaciona con src/app/page.tsx y con las secciones ancladas por id
+ * dentro de src/components/sections.
+ * Existe dentro de Kotta para orientar al visitante por la historia de venta
+ * y mantener visible el camino hacia precio o contratacion.
+ */
+
 import { useState, useEffect } from 'react'
 import { cn } from '@/components/lib/utils'
 
