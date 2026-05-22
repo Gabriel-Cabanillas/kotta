@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * Barra de navegacion principal para el panel del proveedor.
+ * Contiene los accesos a ordenes e historial, el contexto del usuario y el cierre de sesion.
+ * Se relaciona con src/app/[coto]/proveedor/page.tsx,
+ * src/app/[coto]/proveedor/ordenes/page.tsx y el endpoint /api/auth/logout.
+ * Existe dentro de Kotta para que los proveedores naveguen sus tareas asignadas
+ * dentro del coto correspondiente.
+ */
+
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/components/lib/utils'
