@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * Vista operativa de ordenes asignadas al proveedor.
+ * Contiene el listado de ordenes, el detalle seleccionado, el cambio de estado y la carga de evidencia.
+ * Se relaciona con src/app/[coto]/proveedor/page.tsx,
+ * /api/proveedor/actualizar y /api/proveedor/evidencia.
+ * Existe dentro de Kotta para que el proveedor ejecute y documente trabajos
+ * derivados de tickets vecinales.
+ */
+
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 

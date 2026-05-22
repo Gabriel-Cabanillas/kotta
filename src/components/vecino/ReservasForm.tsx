@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * Interfaz de reservas para que el vecino consulte, cree y cancele reservas de amenidades.
+ * Contiene el listado de reservas proximas, el modal de nueva reserva y las acciones de guardado.
+ * Se relaciona con src/app/[coto]/vecino/reservas/page.tsx,
+ * /api/reservas/crear y /api/reservas/cancelar.
+ * Existe dentro de Kotta para administrar el uso de amenidades compartidas
+ * desde el panel residencial del vecino.
+ */
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 

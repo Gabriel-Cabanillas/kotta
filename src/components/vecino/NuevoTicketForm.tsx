@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * Formulario para que el vecino registre un nuevo ticket de mantenimiento o reporte.
+ * Contiene la captura de titulo, categoria, descripcion y foto opcional del problema.
+ * Se relaciona con src/app/[coto]/vecino/tickets/nuevo/page.tsx,
+ * la ruta /api/tickets/crear y la vista de tickets del vecino.
+ * Existe dentro de Kotta para convertir reportes del residente en tickets
+ * asociados a su organizacion, casa y coto.
+ */
+
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 

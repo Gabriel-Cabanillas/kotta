@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * Barra de navegacion principal para el panel del vecino.
+ * Contiene los enlaces de seccion, el estado del menu movil y la accion de cierre de sesion.
+ * Se relaciona con src/app/[coto]/vecino/layout.tsx, las paginas bajo src/app/[coto]/vecino
+ * y el endpoint /api/auth/logout.
+ * Existe dentro de Kotta para dar al residente una entrada consistente a sus tickets,
+ * pagos y reservas dentro del coto activo.
+ */
+
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
