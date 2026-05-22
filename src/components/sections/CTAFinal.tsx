@@ -1,5 +1,13 @@
 'use client'
 
+/**
+ * Seccion final de conversion de la landing publica.
+ * Contiene el cierre comercial, los botones de contacto y el recordatorio de activacion rapida.
+ * Se relaciona con src/app/page.tsx, Pricing, FAQ y los enlaces externos de WhatsApp o demo.
+ * Existe dentro de Kotta para concentrar la decision de compra despues de presentar
+ * problema, solucion, funcionalidades y precio.
+ */
+
 import { useEffect, useRef } from 'react'
 
 export default function CTAFinal() {

@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * Seccion de problema de la landing publica.
+ * Contiene los dolores operativos y financieros que viven los administradores de condominios.
+ * Se relaciona con src/app/page.tsx, Hero y Howitworks como puente entre la promesa
+ * inicial y la explicacion de la solucion.
+ * Existe dentro de Kotta para hacer visible la necesidad comercial antes de presentar
+ * las funcionalidades del producto.
+ */
+
 import { useEffect, useRef } from 'react'
 
 const PAINS = [

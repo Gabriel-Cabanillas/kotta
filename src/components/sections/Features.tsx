@@ -1,5 +1,15 @@
 'use client'
 
+/**
+ * Seccion de funcionalidades de la landing publica.
+ * Contiene la presentacion por roles de administrador, vecino, proveedor y guardia,
+ * con beneficios y simulaciones visuales de sus paneles.
+ * Se relaciona con src/app/page.tsx, Howitworks, Pillars y las rutas internas
+ * de cada rol que materializan estas capacidades.
+ * Existe dentro de Kotta para traducir la propuesta comercial en funciones concretas
+ * que cada usuario del condominio puede entender.
+ */
+
 import { useEffect, useRef, useState } from 'react'
 
 const ROLES = [

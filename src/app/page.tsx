@@ -1,3 +1,13 @@
+/**
+ * Pagina publica principal de Kotta.
+ * Contiene la composicion narrativa de la landing: navegacion, hero, problema,
+ * proceso, funcionalidades, pilares, precio, preguntas frecuentes, cierre comercial y footer.
+ * Se relaciona con los componentes de src/components/layout/Navbar.tsx y
+ * src/components/sections para construir la experiencia completa de venta.
+ * Existe dentro de Kotta para presentar el producto a administradores de condominios
+ * y guiarlos desde la propuesta de valor hasta la contratacion.
+ */
+
 {/* Landin Page */}
 
 

@@ -1,5 +1,14 @@
 'use client'
 
+/**
+ * Seccion de precio de la landing publica.
+ * Contiene el plan unico, lo incluido en la suscripcion y enlaces hacia preguntas frecuentes.
+ * Se relaciona con src/app/page.tsx, Navbar, FAQ y CTAFinal mediante el ancla de precio
+ * y la ruta comercial de contratacion.
+ * Existe dentro de Kotta para convertir la propuesta de valor en una oferta clara,
+ * sin niveles ni modulos adicionales.
+ */
+
 import { useEffect, useRef } from 'react'
 
 const INCLUDES = [
