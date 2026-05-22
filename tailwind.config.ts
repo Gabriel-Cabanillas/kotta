@@ -1,3 +1,9 @@
+/**
+ * Configura Tailwind CSS y los tokens visuales principales de Kotta.
+ * Se relaciona con las clases usadas por la landing, paneles por rol y componentes compartidos.
+ * Existe para mantener colores, tipografias, espaciados y animaciones consistentes.
+ */
+
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
