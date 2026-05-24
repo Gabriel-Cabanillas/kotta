@@ -93,7 +93,7 @@ export default function Pricing() {
 
                 {/* Precio */}
                 <div className="flex items-end gap-2 mb-2">
-                  <span className="font-display text-white text-6xl leading-none">$1,500</span>
+                  <span className="font-display text-white text-6xl leading-none">$3,500</span>
                   <div className="mb-2">
                     <span className="text-[#8BA8C4] text-base">MXN</span>
                     <p className="text-[#8BA8C4] text-sm">/mes por condominio</p>
@@ -128,7 +128,7 @@ export default function Pricing() {
                   rel="noopener noreferrer"
                   className="btn-primary w-full justify-center py-4 text-base mb-3"
                 >
-                  Contratar ahora — $1,500/mes
+                  Contratar ahora — $3,500/mes
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -161,14 +161,14 @@ export default function Pricing() {
             {/* Comparación rápida */}
             <div className="reveal rounded-2xl border border-[#E2E8F0] bg-[#F7F9FC] p-6">
               <p className="text-xs font-medium text-[#6B7A99] uppercase tracking-wider mb-4">
-                ¿Por qué $1,500/mes?
+                ¿Por qué $3,500/mes?
               </p>
               <div className="space-y-3">
                 {[
                   { label: 'Grupo de WhatsApp', cost: 'Gratis', pain: 'Caos total, nada documentado', bad: true },
                   { label: 'Hoja de Excel', cost: '$0', pain: 'Solo tú la entiendes', bad: true },
                   { label: 'Solución a medida', cost: '$80,000+', pain: 'Meses de desarrollo', bad: true },
-                  { label: 'KOTTA', cost: '$1,500/mes', pain: 'Operando en 24 hrs', bad: false },
+                  { label: 'KOTTA', cost: '$3,500/mes', pain: 'Operando en 24 hrs', bad: false },
                 ].map((row, i) => (
                   <div
                     key={i}
