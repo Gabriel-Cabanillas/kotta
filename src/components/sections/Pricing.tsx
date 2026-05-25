@@ -32,6 +32,30 @@ const FAQS_PREVIEW = [
   '¿Cómo se activa el condominio?',
 ]
 
+const PLANS = [
+  {
+    name: 'Esencial',
+    price: '$3,500',
+    capacity: 'Hasta 150 viviendas',
+    supportText: 'Aprox. $23 pesos por casa',
+    highlighted: false,
+  },
+  {
+    name: 'Pro',
+    price: '$6,500',
+    capacity: 'Hasta 300 viviendas',
+    supportText: 'Aprox. $21 pesos por casa',
+    highlighted: true,
+  },
+  {
+    name: 'Enterprise',
+    price: '$12,000',
+    capacity: '+300 viviendas',
+    supportText: 'Sin límite',
+    highlighted: false,
+  },
+]
+
 export default function Pricing() {
   const sectionRef = useRef<HTMLDivElement>(null)
 
@@ -64,43 +88,56 @@ export default function Pricing() {
         <div className="max-w-2xl mb-16 reveal">
           <div className="badge badge-navy mb-5">Precio</div>
           <h2 className="font-display text-[2rem] md:text-[2.6rem] text-[#0F1F34] mb-4">
-            Un solo plan.
+            Tres planes.
             <span className="italic"> Todo incluido.</span>
           </h2>
           <p className="text-lg text-[#4A5568] leading-relaxed">
-            Sin niveles, sin módulos adicionales, sin sorpresas al final del mes.
-            Lo que ves es exactamente lo que pagas.
+            Elige la capacidad que necesita tu condominio, sin módulos adicionales
+            ni sorpresas al final del mes.
           </p>
         </div>
 
         <div className="grid lg:grid-cols-5 gap-8 items-start">
 
-          {/* Pricing card — 3 cols */}
-          <div className="lg:col-span-3 reveal">
-            <div className="rounded-2xl border-2 border-[#1E3A5F] overflow-hidden shadow-[0_8px_40px_rgba(30,58,95,0.12)]">
+          {/* Pricing cards */}
+          <div className="lg:col-span-5 grid lg:grid-cols-3 gap-6 reveal">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.name}
+                className={`rounded-2xl border-2 overflow-hidden ${
+                  plan.highlighted
+                    ? 'border-[#1E3A5F] shadow-[0_8px_40px_rgba(30,58,95,0.12)]'
+                    : 'border-[#E2E8F0] shadow-[0_8px_30px_rgba(15,31,52,0.06)]'
+                }`}
+              >
 
               {/* Card header */}
-              <div className="bg-[#1E3A5F] px-8 py-8">
+              <div className={`${plan.highlighted ? 'bg-[#1E3A5F]' : 'bg-[#F7F9FC]'} px-8 py-8`}>
                 <div className="flex items-start justify-between gap-4 mb-6">
                   <div>
-                    <p className="text-[#8BA8C4] text-sm mb-1">Plan único</p>
-                    <h3 className="font-display text-white text-2xl">KOTTA completo</h3>
+                    <p className={`text-sm mb-1 ${plan.highlighted ? 'text-[#8BA8C4]' : 'text-[#6B7A99]'}`}>Plan</p>
+                    <h3 className={`font-display text-2xl ${plan.highlighted ? 'text-white' : 'text-[#0F1F34]'}`}>{plan.name}</h3>
                   </div>
-                  <span className="text-[11px] font-medium px-3 py-1.5 rounded-full bg-[#4FA8E8] text-white flex-shrink-0">
-                    Todo incluido
-                  </span>
+                  {plan.highlighted && (
+                    <span className="text-[11px] font-medium px-3 py-1.5 rounded-full bg-[#4FA8E8] text-white flex-shrink-0">
+                      Recomendado
+                    </span>
+                  )}
                 </div>
 
                 {/* Precio */}
                 <div className="flex items-end gap-2 mb-2">
-                  <span className="font-display text-white text-6xl leading-none">$3,500</span>
+                  <span className={`font-display text-5xl leading-none ${plan.highlighted ? 'text-white' : 'text-[#0F1F34]'}`}>{plan.price}</span>
                   <div className="mb-2">
-                    <span className="text-[#8BA8C4] text-base">MXN</span>
-                    <p className="text-[#8BA8C4] text-sm">/mes por condominio</p>
+                    <span className={`text-base ${plan.highlighted ? 'text-[#8BA8C4]' : 'text-[#6B7A99]'}`}>MXN</span>
+                    <p className={`text-sm ${plan.highlighted ? 'text-[#8BA8C4]' : 'text-[#6B7A99]'}`}>/mes por condominio</p>
                   </div>
                 </div>
-                <p className="text-[#8BA8C4] text-sm">
-                  Sin contrato de permanencia · Cancela cuando quieras
+                <p className={`text-sm font-medium ${plan.highlighted ? 'text-white' : 'text-[#1E3A5F]'}`}>
+                  {plan.capacity}
+                </p>
+                <p className={`text-sm ${plan.highlighted ? 'text-[#8BA8C4]' : 'text-[#6B7A99]'}`}>
+                  {plan.supportText}
                 </p>
               </div>
 
@@ -109,7 +146,7 @@ export default function Pricing() {
                 <p className="text-xs font-medium text-[#6B7A99] uppercase tracking-wider mb-5">
                   Qué incluye
                 </p>
-                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3 mb-8">
+                <div className="space-y-3 mb-8">
                   {INCLUDES.map((item, i) => (
                     <div key={i} className="flex items-start gap-2.5">
                       <svg className="flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -128,7 +165,7 @@ export default function Pricing() {
                   rel="noopener noreferrer"
                   className="btn-primary w-full justify-center py-4 text-base mb-3"
                 >
-                  Contratar ahora — $3,500/mes
+                  Contratar ahora
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -152,23 +189,24 @@ export default function Pricing() {
                   Activación en menos de 24 hrs · Sin contrato forzado
                 </p>
               </div>
-            </div>
+              </div>
+            ))}
           </div>
 
-          {/* Columna derecha — 2 cols */}
-          <div className="lg:col-span-2 space-y-5">
+          {/* Bloques de apoyo */}
+          <div className="lg:col-span-5 grid lg:grid-cols-3 gap-5">
 
             {/* Comparación rápida */}
             <div className="reveal rounded-2xl border border-[#E2E8F0] bg-[#F7F9FC] p-6">
               <p className="text-xs font-medium text-[#6B7A99] uppercase tracking-wider mb-4">
-                ¿Por qué $3,500/mes?
+                ¿Por qué contratar KOTTA?
               </p>
               <div className="space-y-3">
                 {[
                   { label: 'Grupo de WhatsApp', cost: 'Gratis', pain: 'Caos total, nada documentado', bad: true },
                   { label: 'Hoja de Excel', cost: '$0', pain: 'Solo tú la entiendes', bad: true },
                   { label: 'Solución a medida', cost: '$80,000+', pain: 'Meses de desarrollo', bad: true },
-                  { label: 'KOTTA', cost: '$3,500/mes', pain: 'Operando en 24 hrs', bad: false },
+                  { label: 'KOTTA', cost: 'Desde $3,500/mes', pain: 'Operando en 24 hrs', bad: false },
                 ].map((row, i) => (
                   <div
                     key={i}
