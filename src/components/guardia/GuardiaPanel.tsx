@@ -42,6 +42,7 @@ export default function GuardiaPanel({
   const [visitorType, setVisitorType] = useState<VisitorType>('VISITA')
   const [notes, setNotes] = useState('')
   const [loadingEntry, setLoadingEntry] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const [closingId, setClosingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -109,27 +110,58 @@ export default function GuardiaPanel({
     }
   }
 
+  const handleLogout = async () => {
+    setLoggingOut(true)
+    setError(null)
+
+    try {
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.error ?? 'No se pudo cerrar sesion')
+      }
+
+      router.push('/sign-in')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo cerrar sesion')
+      setLoggingOut(false)
+    }
+  }
+
   return (
     <div>
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-[#6B7A99] flex items-center justify-center">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-              stroke="white"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              fill="none"
-            />
-          </svg>
+      <div className="flex items-start justify-between gap-3 mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#6B7A99] flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                stroke="white"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                fill="none"
+              />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xs text-[#6B7A99]">{orgName}</p>
+            <h1 className="font-display text-xl text-[#0F1F34]">
+              Bitacora del dia
+            </h1>
+            <p className="text-sm text-[#6B7A99]">Guardia: {userName}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs text-[#6B7A99]">{orgName}</p>
-          <h1 className="font-display text-xl text-[#0F1F34]">
-            Bitacora del dia
-          </h1>
-          <p className="text-sm text-[#6B7A99]">Guardia: {userName}</p>
-        </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="text-xs text-[#0F1F34] border border-[#E2E8F0] bg-white hover:border-[#C5D5EE] px-3 py-2 rounded-lg transition-all disabled:opacity-50"
+        >
+          {loggingOut ? 'Cerrando...' : 'Cerrar sesion'}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
