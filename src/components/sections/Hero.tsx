@@ -104,7 +104,7 @@ export default function Hero() {
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-3">
               <a href="#precio" className="btn-primary px-7 py-3.5 text-base">
-                Contratar ahora — $1,500/mes
+                Ver planes desde $3,500/mes
               </a>
               <a href="#como-funciona" className="btn-ghost px-6 py-3.5 text-base">
                 Ver cómo funciona

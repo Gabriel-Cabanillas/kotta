@@ -2,11 +2,11 @@
 
 /**
  * Seccion de precio de la landing publica.
- * Contiene el plan unico, lo incluido en la suscripcion y enlaces hacia preguntas frecuentes.
+ * Contiene los planes comerciales, lo incluido en la suscripcion y enlaces hacia preguntas frecuentes.
  * Se relaciona con src/app/page.tsx, Navbar, FAQ y CTAFinal mediante el ancla de precio
  * y la ruta comercial de contratacion.
  * Existe dentro de Kotta para convertir la propuesta de valor en una oferta clara,
- * sin niveles ni modulos adicionales.
+ * segmentada por capacidad del condominio.
  */
 
 import { useEffect, useRef } from 'react'
@@ -51,7 +51,7 @@ const PLANS = [
     name: 'Enterprise',
     price: '$12,000',
     capacity: '+300 viviendas',
-    supportText: 'Sin límite',
+    supportText: 'Para condominios grandes',
     highlighted: false,
   },
 ]
@@ -93,7 +93,8 @@ export default function Pricing() {
           </h2>
           <p className="text-lg text-[#4A5568] leading-relaxed">
             Elige la capacidad que necesita tu condominio, sin módulos adicionales
-            ni sorpresas al final del mes.
+            ni sorpresas al final del mes. Esencial cubre hasta 150 viviendas,
+            Pro hasta 300 y Enterprise más de 300.
           </p>
         </div>
 
@@ -206,7 +207,7 @@ export default function Pricing() {
                   { label: 'Grupo de WhatsApp', cost: 'Gratis', pain: 'Caos total, nada documentado', bad: true },
                   { label: 'Hoja de Excel', cost: '$0', pain: 'Solo tú la entiendes', bad: true },
                   { label: 'Solución a medida', cost: '$80,000+', pain: 'Meses de desarrollo', bad: true },
-                  { label: 'KOTTA', cost: 'Desde $3,500/mes', pain: 'Operando en 24 hrs', bad: false },
+                  { label: 'KOTTA', cost: 'Desde $3,500 MXN/mes', pain: 'Operando en 24 hrs', bad: false },
                 ].map((row, i) => (
                   <div
                     key={i}

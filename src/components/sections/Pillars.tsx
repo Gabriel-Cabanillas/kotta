@@ -273,10 +273,10 @@ export default function Pillars() {
         {/* CTA puente hacia precio */}
         <div className="reveal mt-14 text-center">
           <p className="text-[#6B7A99] text-sm mb-2">
-            Todo esto incluido en un solo plan.
+            Todo esto incluido en los tres planes.
           </p>
           <p className="text-[#0F1F34] font-medium text-lg mb-6">
-            Sin módulos extra. Sin sorpresas.
+            Elige la capacidad adecuada para tu condominio.
           </p>
           <a href="#precio" className="btn-primary py-3.5 px-8 text-base inline-flex">
             Ver el precio
