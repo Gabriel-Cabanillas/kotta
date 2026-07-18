@@ -311,11 +311,11 @@ export default function Features() {
         {/* CTA */}
         <div className="reveal mt-14 flex flex-col sm:flex-row items-center justify-between gap-5 p-7 rounded-2xl bg-[#1E3A5F]">
           <div>
-            <p className="text-white font-medium mb-1">Un plan. Todos los roles incluidos.</p>
-            <p className="text-[#8BA8C4] text-sm">Sin cargos extra por número de usuarios o roles activos.</p>
+            <p className="text-white font-medium mb-1">Tres planes. Todos los roles incluidos.</p>
+            <p className="text-[#8BA8C4] text-sm">Elige según el tamaño del condominio, sin cargos extra por roles activos.</p>
           </div>
           <a href="#precio" className="btn-primary btn-sky whitespace-nowrap flex-shrink-0 py-3 px-7">
-            Ver qué incluye el plan
+            Ver qué incluye cada plan
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>

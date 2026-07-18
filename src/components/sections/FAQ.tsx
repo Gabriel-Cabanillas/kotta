@@ -13,11 +13,11 @@ import { useEffect, useRef, useState } from 'react'
 const FAQS = [
   {
     q: '¿Cuántos vecinos, guardias o proveedores puedo registrar?',
-    a: 'Todos los que necesites. El plan no tiene límite de usuarios. Registra a todos tus vecinos, todos tus proveedores y todos tus guardias sin costo adicional.',
+    a: 'Todos los que necesites. Los planes no tienen límite de usuarios. Registra a todos tus vecinos, todos tus proveedores y todos tus guardias sin costo adicional.',
   },
   {
     q: '¿Hay contrato de permanencia?',
-    a: 'No. El plan es mensual y puedes cancelar cuando quieras, sin penalizaciones ni trámites. Si decides salirte, tus datos quedan disponibles por 30 días adicionales para que los exportes.',
+    a: 'No. La suscripción es mensual y puedes cancelar cuando quieras, sin penalizaciones ni trámites. Si decides salirte, tus datos quedan disponibles por 30 días adicionales para que los exportes.',
   },
   {
     q: '¿Cómo se activa el condominio? ¿Es complicado?',
@@ -37,7 +37,7 @@ const FAQS = [
   },
   {
     q: '¿Puedo tener más de un condominio?',
-    a: 'Sí. Cada condominio es independiente y tiene su propio plan de $1,500/mes. Si administras varios cotos, cada uno tiene su URL, sus usuarios y sus datos completamente separados.',
+    a: 'Sí. Cada condominio es independiente y el precio depende de su tamaño: Esencial por $3,500 MXN/mes hasta 150 viviendas, Pro por $6,500 MXN/mes hasta 300 viviendas y Enterprise por $12,000 MXN/mes para más de 300 viviendas. Si administras varios cotos, cada uno tiene su URL, sus usuarios y sus datos completamente separados.',
   },
   {
     q: '¿Qué incluye el soporte?',

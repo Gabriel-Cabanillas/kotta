@@ -26,7 +26,7 @@ const STEPS = [
           {[
             { label: 'Nombre del coto', value: 'Residencial Los Pinos' },
             { label: 'Correo del admin', value: 'admin@lospinos.mx' },
-            { label: 'Plan', value: 'Plan único — $1,500/mes' },
+            { label: 'Plan', value: 'Plan Pro — $6,500/mes' },
           ].map((f) => (
             <div key={f.label}>
               <p className="text-[9px] text-[#6B7A99] mb-1">{f.label}</p>
@@ -219,7 +219,7 @@ export default function HowItWorks() {
             ¿Listo para dejar de administrar en WhatsApp?
           </p>
           <a href="#precio" className="btn-primary py-3.5 px-8 text-base inline-flex">
-            Contratar ahora — $1,500/mes
+            Ver planes desde $3,500/mes
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
               <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>

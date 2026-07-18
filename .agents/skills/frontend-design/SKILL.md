@@ -3,7 +3,7 @@
 name: frontend-design
 description: Use this skill only when improving the visual design of Kotta frontend screens, landing pages, dashboards, onboarding flows, marketing pages, empty states, cards, tables, forms, and UI components. Focus on premium, trustworthy, modern SaaS aesthetics. Do not use this skill for authentication logic, Supabase policies, payment logic, database changes, backend logic, security-sensitive changes, or purely functional bug fixes.
 license: Complete terms in LICENSE.txt
---------------------------------------
+---
 
 # Frontend Design Skill for Kotta
 
