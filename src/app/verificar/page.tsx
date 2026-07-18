@@ -15,6 +15,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import Image from 'next/image'
 
 function VerificarForm() {
   const router       = useRouter()
@@ -99,35 +100,37 @@ function VerificarForm() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
 
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-[#1E3A5F] flex items-center justify-center mx-auto mb-4">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-              <path d="M4 6h16M4 12h10M4 18h13" stroke="#4FA8E8" strokeWidth="2.2" strokeLinecap="round"/>
-              <circle cx="19" cy="18" r="3.5" fill="#4FA8E8"/>
-            </svg>
-          </div>
-          <h1 className="font-display text-2xl text-[#0F1F34]">Verifica tu identidad</h1>
-          <p className="text-sm text-[#6B7A99] mt-1">
+        <div className="flex flex-col items-center text-center mb-10">
+          <Image
+            src="/LogoKnegro.svg"
+            alt="Kotta"
+            width={44}
+            height={44}
+            priority
+            className="h-11 w-11 mb-7"
+          />
+          <h1 className="text-2xl font-medium text-black">Verifica tu identidad</h1>
+          <p className="text-sm text-neutral-400 mt-2">
             Enviamos un código de 6 dígitos a
           </p>
-          <p className="text-sm font-medium text-[#1E3A5F] mt-0.5">{email}</p>
+          <p className="text-sm font-medium text-black mt-0.5">{email}</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 shadow-sm">
+        <div className="bg-white rounded-3xl border border-neutral-100 p-8 sm:p-10 shadow-card">
 
           {error && (
-            <div className="bg-[#FEECEA] border border-[#FACAC3] rounded-xl px-4 py-3 mb-6">
-              <p className="text-sm text-[#E8503A]">{error}</p>
+            <div className="bg-red/[0.06] border border-red/20 rounded-xl px-4 py-3 mb-6">
+              <p className="text-sm text-red">{error}</p>
             </div>
           )}
 
           {/* Inputs del código */}
-          <div className="flex gap-3 justify-center mb-6" onPaste={handlePaste}>
+          <div className="flex gap-3 justify-center mb-7" onPaste={handlePaste}>
             {codigo.map((digit, i) => (
               <input
                 key={i}
@@ -138,10 +141,10 @@ function VerificarForm() {
                 value={digit}
                 onChange={(e) => handleChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
-                className={`w-12 h-14 text-center text-xl font-bold border-2 rounded-xl transition-all focus:outline-none ${
+                className={`w-12 h-14 text-center text-xl font-medium border-2 rounded-2xl transition-all duration-200 focus:outline-none ${
                   digit
-                    ? 'border-[#1E3A5F] bg-[#E8F0F9] text-[#1E3A5F]'
-                    : 'border-[#E2E8F0] bg-white text-[#0F1F34] focus:border-[#4FA8E8]'
+                    ? 'border-black bg-black/[0.03] text-black'
+                    : 'border-neutral-100 bg-white text-black focus:border-black'
                 }`}
               />
             ))}
@@ -150,20 +153,20 @@ function VerificarForm() {
           <button
             onClick={() => handleVerificar()}
             disabled={loading || codigo.some((d) => d === '')}
-            className="btn-primary w-full justify-center py-3.5 text-base disabled:opacity-50"
+            className="btn-primary w-full justify-center py-3.5 text-base disabled:opacity-40"
           >
             {loading ? 'Verificando...' : 'Verificar código'}
           </button>
 
           <div className="text-center mt-5">
             {reenvioTimer > 0 ? (
-              <p className="text-sm text-[#6B7A99]">
-                Reenviar código en <span className="font-medium text-[#1E3A5F]">{reenvioTimer}s</span>
+              <p className="text-sm text-neutral-400">
+                Reenviar código en <span className="font-medium text-black">{reenvioTimer}s</span>
               </p>
             ) : (
               <button
                 onClick={handleReenviar}
-                className="text-sm text-[#4FA8E8] hover:underline font-medium"
+                className="text-sm text-black hover:text-red font-medium transition-colors duration-200"
               >
                 Reenviar código
               </button>
@@ -171,7 +174,7 @@ function VerificarForm() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-[#6B7A99] mt-6">
+        <p className="text-center text-xs text-neutral-400 mt-6">
           Revisa tu carpeta de spam si no ves el correo.
         </p>
       </div>

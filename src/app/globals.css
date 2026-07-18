@@ -1,214 +1,184 @@
-/* ─── Google Fonts ─────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Design tokens ─────────────────────────────────────────── */
-:root {
-  --font-display: 'DM Serif Display', Georgia, serif;
-  --font-sans:    'DM Sans', system-ui, sans-serif;
-
-  --navy:    #1E3A5F;
-  --sky:     #4FA8E8;
-  --sky-lt:  #E8F4FD;
-  --bg:      #F7F9FC;
-  --white:   #FFFFFF;
-
-  --success: #1DB87E;
-  --warning: #F5A623;
-  --danger:  #E8503A;
-
-  --text-primary:   #0F1F34;
-  --text-secondary: #4A5568;
-  --text-muted:     #6B7A99;
-  --border:         #E2E8F0;
-}
-
 /* ─── Base ──────────────────────────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
 
-html {
-  scroll-behavior: smooth;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-body {
-  font-family: var(--font-sans);
-  background: var(--bg);
-  color: var(--text-primary);
-  line-height: 1.65;
-}
+  body {
+    @apply font-gotham bg-white text-neutral-900;
+    line-height: 1.65;
+  }
 
-/* ─── Typography ────────────────────────────────────────────── */
-.font-display {
-  font-family: var(--font-display);
-}
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-gotham;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
 
-h1, h2, h3 {
-  font-family: var(--font-display);
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-}
+  ::selection {
+    @apply bg-red/15 text-neutral-900;
+  }
 
-/* ─── Utility classes ───────────────────────────────────────── */
-.container-kotta {
-  width: 100%;
-  max-width: 1120px;
-  margin-inline: auto;
-  padding-inline: 1.5rem;
-}
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
 
-@media (min-width: 768px) {
-  .container-kotta {
-    padding-inline: 2.5rem;
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-neutral-400 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-neutral-800;
   }
 }
 
-@media (min-width: 1280px) {
+/* ─── Components ────────────────────────────────────────────── */
+@layer components {
+
+  /* ── Layout ─────────────────────────────────────────────── */
   .container-kotta {
-    padding-inline: 3rem;
+    @apply w-full mx-auto px-6 md:px-10 xl:px-12;
+    max-width: 1120px;
+  }
+
+  /* ── Reveal (IntersectionObserver scroll animations) ─────── */
+  .reveal {
+    @apply opacity-0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .reveal.visible {
+    @apply opacity-100;
+    transform: translateY(0);
+  }
+
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+  .reveal-delay-5 { transition-delay: 0.5s; }
+
+  /* ── Botones ─────────────────────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center gap-2
+           bg-black text-white font-gotham
+           text-[0.9375rem] font-medium
+           px-7 py-3 rounded-[0.625rem]
+           border-none cursor-pointer no-underline whitespace-nowrap
+           transition-all duration-200 ease-in-out;
+  }
+
+  .btn-primary:hover {
+    @apply bg-neutral-900 shadow-black -translate-y-px;
+  }
+
+  .btn-primary:active {
+    @apply translate-y-0;
+  }
+
+  /* Variante acento rojo Kotta */
+  .btn-primary.btn-accent {
+    @apply bg-red;
+  }
+
+  .btn-primary.btn-accent:hover {
+    background: #e54e45;
+    @apply shadow-[0_8px_24px_rgba(253,95,86,0.3)] -translate-y-px;
+  }
+
+  /* Variante navy (legacy — usado en contextos de fondo claro) */
+  .btn-primary.btn-navy {
+    @apply bg-navy;
+  }
+
+  .btn-primary.btn-navy:hover {
+    background: #152d4b;
+    @apply shadow-navy -translate-y-px;
+  }
+
+  /* Variante sky */
+  .btn-primary.btn-sky {
+    @apply bg-sky;
+  }
+
+  .btn-primary.btn-sky:hover {
+    background: #3a92d0;
+    @apply shadow-sky -translate-y-px;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2
+           bg-transparent text-black font-gotham
+           text-[0.9375rem] font-medium
+           px-6 py-3 rounded-[0.625rem]
+           border border-neutral-100 cursor-pointer no-underline whitespace-nowrap
+           transition-all duration-200 ease-in-out;
+  }
+
+  .btn-ghost:hover {
+    @apply border-black bg-black/[0.04];
+  }
+
+  /* Variante ghost sobre fondos oscuros */
+  .btn-ghost.btn-ghost-navy {
+    @apply text-navy border-border;
+  }
+
+  .btn-ghost.btn-ghost-navy:hover {
+    @apply border-navy bg-navy/[0.04];
+  }
+
+  /* ── Cards ───────────────────────────────────────────────── */
+  .card {
+    @apply bg-white border border-neutral-100 rounded-2xl p-7
+           transition-all duration-[250ms] ease-in-out;
+  }
+
+  .card:hover {
+    @apply shadow-card-hover -translate-y-0.5;
+  }
+
+  /* ── Badge ───────────────────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center gap-1.5
+           text-xs font-medium tracking-[0.04em]
+           px-3 py-1 rounded-full uppercase;
+  }
+
+  .badge-dark {
+    @apply bg-black/[0.06] text-neutral-900;
+  }
+
+  .badge-neutral {
+    @apply bg-neutral-200 text-neutral-800;
+  }
+
+  /* Legacy — mantener compatibilidad mientras se migran componentes */
+  .badge-navy {
+    @apply bg-navy/[0.08] text-navy;
+  }
+
+  .badge-sky {
+    @apply bg-sky-lt text-[#185FA5];
+  }
+
+  /* ── Divider ─────────────────────────────────────────────── */
+  .section-divider {
+    @apply w-full h-px bg-border;
   }
 }
-
-/* ─── Animaciones de entrada ────────────────────────────────── */
-.reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
-}
-
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.reveal-delay-1 { transition-delay: 0.1s; }
-.reveal-delay-2 { transition-delay: 0.2s; }
-.reveal-delay-3 { transition-delay: 0.3s; }
-.reveal-delay-4 { transition-delay: 0.4s; }
-.reveal-delay-5 { transition-delay: 0.5s; }
-
-/* ─── Botones ────────────────────────────────────────────────── */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--navy);
-  color: white;
-  font-family: var(--font-sans);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  padding: 0.75rem 1.75rem;
-  border-radius: 0.625rem;
-  border: none;
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.btn-primary:hover {
-  background: #152d4b;
-  transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(30,58,95,0.22);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
-}
-
-.btn-primary.btn-sky {
-  background: var(--sky);
-}
-
-.btn-primary.btn-sky:hover {
-  background: #3a92d0;
-  box-shadow: 0 8px 24px rgba(79,168,232,0.3);
-}
-
-.btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: transparent;
-  color: var(--navy);
-  font-family: var(--font-sans);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.625rem;
-  border: 1.5px solid var(--border);
-  cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.btn-ghost:hover {
-  border-color: var(--navy);
-  background: rgba(30,58,95,0.04);
-}
-
-/* ─── Cards ──────────────────────────────────────────────────── */
-.card {
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-  padding: 1.75rem;
-  transition: box-shadow 0.25s ease, transform 0.25s ease;
-}
-
-.card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 16px 40px rgba(0,0,0,0.04);
-  transform: translateY(-2px);
-}
-
-/* ─── Badge ──────────────────────────────────────────────────── */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  padding: 0.3rem 0.75rem;
-  border-radius: 99px;
-  text-transform: uppercase;
-}
-
-.badge-navy {
-  background: rgba(30,58,95,0.08);
-  color: var(--navy);
-}
-
-.badge-sky {
-  background: var(--sky-lt);
-  color: #185FA5;
-}
-
-/* ─── Divider ────────────────────────────────────────────────── */
-.section-divider {
-  width: 100%;
-  height: 1px;
-  background: var(--border);
-}
-
-/* ─── Scrollbar ──────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: #C5D5EE;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover { background: #9DB8E2; }
-
-/* ─── Selection ──────────────────────────────────────────────── */
-::selection {
-  background: rgba(79,168,232,0.2);
-  color: var(--navy);
-} 

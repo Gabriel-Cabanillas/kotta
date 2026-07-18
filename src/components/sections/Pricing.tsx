@@ -1,312 +1,254 @@
-'use client'
+'use client';
 
-/**
- * Seccion de precio de la landing publica.
- * Contiene los planes comerciales, lo incluido en la suscripcion y enlaces hacia preguntas frecuentes.
- * Se relaciona con src/app/page.tsx, Navbar, FAQ y CTAFinal mediante el ancla de precio
- * y la ruta comercial de contratacion.
- * Existe dentro de Kotta para convertir la propuesta de valor en una oferta clara,
- * segmentada por capacidad del condominio.
- */
+import React, { useState } from 'react';
+import { ShieldCheck } from 'lucide-react';
 
-import { useEffect, useRef } from 'react'
+interface PricingPlan {
+  name: string;
+  priceMonthly: number;
+  priceAnnual: number;
+  description: string;
+  subdescription: string;
+  features: string[];
+  isPopular?: boolean;
+  buttonText: string;
+}
 
-const INCLUDES = [
-  { icon: '👥', text: 'Usuarios ilimitados — vecinos, guardias y proveedores' },
-  { icon: '🎫', text: 'Tickets y órdenes de trabajo sin límite' },
-  { icon: '📸', text: 'Almacenamiento de fotos Antes/Después en la nube' },
-  { icon: '🏗️', text: 'Inventario de activos del condominio' },
-  { icon: '💰', text: 'Control de pagos y registro de morosos' },
-  { icon: '🔐', text: 'Control de acceso y bitácora del guardia' },
-  { icon: '🗓️', text: 'Reserva de amenidades para vecinos' },
-  { icon: '📁', text: 'Directorio de proveedores con calificaciones' },
-  { icon: '🔔', text: 'Notificaciones automáticas para todos los roles' },
-  { icon: '📊', text: 'Panel Super Admin para el equipo KOTTA' },
-  { icon: '🌐', text: 'URL personalizada kotta.com.mx/tu-coto' },
-  { icon: '⚡', text: 'Activación en menos de 24 horas' },
-]
-
-const FAQS_PREVIEW = [
-  '¿Cuántos vecinos puedo registrar?',
-  '¿Hay contrato de permanencia?',
-  '¿Cómo se activa el condominio?',
-]
-
-const PLANS = [
-  {
-    name: 'Esencial',
-    price: '$3,500',
-    capacity: 'Hasta 150 viviendas',
-    supportText: 'Aprox. $23 pesos por casa',
-    highlighted: false,
-  },
-  {
-    name: 'Pro',
-    price: '$6,500',
-    capacity: 'Hasta 300 viviendas',
-    supportText: 'Aprox. $21 pesos por casa',
-    highlighted: true,
-  },
-  {
-    name: 'Enterprise',
-    price: '$12,000',
-    capacity: '+300 viviendas',
-    supportText: 'Para condominios grandes',
-    highlighted: false,
-  },
-]
+const GARANTIA_ITEMS: string[] = [
+  "Sin contrato de permanencia",
+  "Cancela en cualquier momento",
+  "Soporte incluido desde el día 1",
+  "Activación en menos de 24 horas",
+  "Todo lo anteriror aplica solo por la facturación mensual, en la facturación anual es diferente, para mas información consulte el FAQ"
+];
 
 export default function Pricing() {
-  const sectionRef = useRef<HTMLDivElement>(null)
+  const [isAnnual, setIsAnnual] = useState<boolean>(true);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.querySelectorAll('.reveal').forEach((el, i) => {
-              setTimeout(() => el.classList.add('visible'), i * 100)
-            })
-          }
-        })
-      },
-      { threshold: 0.1 }
-    )
-    if (sectionRef.current) observer.observe(sectionRef.current)
-    return () => observer.disconnect()
-  }, [])
+  const plans: PricingPlan[] = [
+    {
+      name: "Esencial",
+      priceMonthly: 3500,
+      priceAnnual: 3150,
+      description: "Hasta 100 viviendas",
+      subdescription: "Ideal para condominos pequeños",
+      buttonText: "Contratar ahora →",
+      features: [
+        "Gestión de residentes",
+        "Gestión de viviendas",
+        "Comunicados y avisos",
+        "Reservaciones de áreas comúnes",
+        "Invitaciones y accesos",
+        "Control administrativo",
+        "Portal de residentes",
+        "Soporte y actualizaciones"
+      ]
+    },
+    {
+      name: "Pro",
+      priceMonthly: 6500,
+      priceAnnual: 5850,
+      description: "Hasta 101 a 300 viviendas",
+      subdescription: "Para comunidades en crecimiento",
+      isPopular: true,
+      buttonText: "Contratar ahora →",
+      features: [
+        "Gestión de residentes",
+        "Gestión de viviendas",
+        "Comunicados y avisos",
+        "Reservaciones de áreas comúnes",
+        "Invitaciones y accesos",
+        "Control administrativo",
+        "Portal de residentes",
+        "Soporte y actualizaciones"
+      ]
+    },
+    {
+      name: "Enterprise",
+      priceMonthly: 12000,
+      priceAnnual: 10800,
+      description: "301 a 600 viviendas",
+      subdescription: "Para desarrollos de gran escala",
+      buttonText: "Contratar ahora →",
+      features: [
+        "Gestión de residentes",
+        "Gestión de viviendas",
+        "Comunicados y avisos",
+        "Reservaciones de áreas comúnes",
+        "Invitaciones y accesos",
+        "Control administrativo",
+        "Portal de residentes",
+        "Soporte y actualizaciones"
+      ]
+    }
+  ];
 
   return (
-    <section
-      id="precio"
-      ref={sectionRef}
-      className="py-24 md:py-32 bg-white"
-    >
-      <div className="container-kotta">
+    <section id='precio' className="relative w-full bg-white py-20 md:py-32 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
 
-        {/* Header */}
-        <div className="max-w-2xl mb-16 reveal">
-          <div className="badge badge-navy mb-5">Precio</div>
-          <h2 className="font-display text-[2rem] md:text-[2.6rem] text-[#0F1F34] mb-4">
-            Tres planes.
-            <span className="italic"> Todo incluido.</span>
+        {/* Encabezado Principal */}
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <h2 className="font-gotham text-4xl md:text-5xl font-medium text-neutral-900 tracking-tight mb-4">
+            Planes a la medida de tu comunidad
           </h2>
-          <p className="text-lg text-[#4A5568] leading-relaxed">
-            Elige la capacidad que necesita tu condominio, sin módulos adicionales
-            ni sorpresas al final del mes. Esencial cubre hasta 150 viviendas,
-            Pro hasta 300 y Enterprise más de 300.
+          <p className="font-gotham text-base md:text-lg text-neutral-500 font-light max-w-xl mx-auto">
+            Elige el control operativo que tu condominio necesita. Sin plazos forzosos ni comisiones ocultas.
           </p>
+
+          {/* Toggle de Facturación (Mensual / Anual) */}
+          <div className="mt-10 flex items-center justify-center gap-4">
+            <span className={`text-sm font-medium transition-colors ${!isAnnual ? 'text-neutral-900' : 'text-neutral-400'}`}>
+              Facturación Mensual
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsAnnual(!isAnnual)}
+              className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-neutral-200 transition-colors duration-200 ease-in-out focus:outline-none"
+              style={{ backgroundColor: isAnnual ? '#000000' : '#E5E5E5' }}
+              aria-label="Cambiar periodo de facturación"
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  isAnnual ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-medium transition-colors ${isAnnual ? 'text-neutral-900' : 'text-neutral-400'}`}>
+                Facturación Anual
+              </span>
+              <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                Ahorra hasta 10%
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div className="grid lg:grid-cols-5 gap-8 items-start">
+        {/* Rejilla de Tarjetas de Precios */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 items-stretch max-w-6xl mx-auto">
+          {plans.map((plan, index) => {
+            const currentPrice = isAnnual ? plan.priceAnnual : plan.priceMonthly;
 
-          {/* Pricing cards */}
-          <div className="lg:col-span-5 grid lg:grid-cols-3 gap-6 reveal">
-            {PLANS.map((plan) => (
+            return (
               <div
-                key={plan.name}
-                className={`rounded-2xl border-2 overflow-hidden ${
-                  plan.highlighted
-                    ? 'border-[#1E3A5F] shadow-[0_8px_40px_rgba(30,58,95,0.12)]'
-                    : 'border-[#E2E8F0] shadow-[0_8px_30px_rgba(15,31,52,0.06)]'
+                key={index}
+                className={`relative flex flex-col justify-between rounded-2xl p-8 transition-all duration-300 ${
+                  plan.isPopular
+                    ? 'bg-[#0B0F19] text-white shadow-2xl scale-105 z-10 border border-neutral-800'
+                    : 'bg-white text-neutral-900 border border-neutral-200 shadow-sm hover:shadow-md'
                 }`}
               >
+                {/* Etiqueta Popular */}
+                {plan.isPopular && (
+                  <span className="absolute -top-4 left-1/2 -translate-x-1/2 inline-flex items-center rounded-full bg-neutral-100 px-4 py-1 text-xs font-semibold text-neutral-900 uppercase tracking-wider shadow-sm">
+                    Recomendado
+                  </span>
+                )}
 
-              {/* Card header */}
-              <div className={`${plan.highlighted ? 'bg-[#1E3A5F]' : 'bg-[#F7F9FC]'} px-8 py-8`}>
-                <div className="flex items-start justify-between gap-4 mb-6">
-                  <div>
-                    <p className={`text-sm mb-1 ${plan.highlighted ? 'text-[#8BA8C4]' : 'text-[#6B7A99]'}`}>Plan</p>
-                    <h3 className={`font-display text-2xl ${plan.highlighted ? 'text-white' : 'text-[#0F1F34]'}`}>{plan.name}</h3>
-                  </div>
-                  {plan.highlighted && (
-                    <span className="text-[11px] font-medium px-3 py-1.5 rounded-full bg-[#4FA8E8] text-white flex-shrink-0">
-                      Recomendado
+                <div>
+                  {/* Nombre y descripción del Plan */}
+                  <h3 className="font-gotham text-xl font-bold tracking-tight mb-2">
+                    {plan.name}
+                  </h3>
+                  <p className={`text-sm font-medium ${plan.isPopular ? "text-white" : "text-neutral-900"}`}>
+                    {plan.description}
+                  </p>
+                  <p className={`text-sm min-h-[5px] ${plan.isPopular ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                    {plan.subdescription}
+                  </p>
+
+                  {/* Sección de Precio */}
+                  <div className="mt-6 flex items-baseline gap-1">
+                    <span className="text-2xl font-mediumitalic tracking-tight">$</span>
+                    <span className="text-5xl font-medium tracking-tight transition-all duration-200">
+                      {currentPrice}
                     </span>
-                  )}
-                </div>
-
-                {/* Precio */}
-                <div className="flex items-end gap-2 mb-2">
-                  <span className={`font-display text-5xl leading-none ${plan.highlighted ? 'text-white' : 'text-[#0F1F34]'}`}>{plan.price}</span>
-                  <div className="mb-2">
-                    <span className={`text-base ${plan.highlighted ? 'text-[#8BA8C4]' : 'text-[#6B7A99]'}`}>MXN</span>
-                    <p className={`text-sm ${plan.highlighted ? 'text-[#8BA8C4]' : 'text-[#6B7A99]'}`}>/mes por condominio</p>
+                    <span className={`text-sm font-light ${plan.isPopular ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                      /MXN al mes + IVA
+                    </span>
                   </div>
-                </div>
-                <p className={`text-sm font-medium ${plan.highlighted ? 'text-white' : 'text-[#1E3A5F]'}`}>
-                  {plan.capacity}
-                </p>
-                <p className={`text-sm ${plan.highlighted ? 'text-[#8BA8C4]' : 'text-[#6B7A99]'}`}>
-                  {plan.supportText}
-                </p>
-              </div>
 
-              {/* Includes list */}
-              <div className="bg-white px-8 py-7">
-                <p className="text-xs font-medium text-[#6B7A99] uppercase tracking-wider mb-5">
-                  Qué incluye
-                </p>
-                <div className="space-y-3 mb-8">
-                  {INCLUDES.map((item, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <svg className="flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" fill="#1DB87E" fillOpacity=".12"/>
-                        <path d="M8 12l3 3 5-5" stroke="#1DB87E" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      <span className="text-sm text-[#4A5568] leading-snug">{item.text}</span>
-                    </div>
-                  ))}
+                  <hr className={`my-6 border-t ${plan.isPopular ? 'border-neutral-800' : 'border-neutral-100'}`} />
+
+                  {/* Lista de características */}
+                  <ul className="space-y-4">
+                    {plan.features.map((feature, fIndex) => (
+                      <li key={fIndex} className="flex items-start gap-3 text-sm">
+                        <svg
+                          className={`h-5 w-5 flex-shrink-0 ${plan.isPopular ? 'text-white' : 'text-black'}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth="2.5"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        <span className={plan.isPopular ? 'text-neutral-300' : 'text-neutral-600'}>
+                          {feature}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                {/* CTA principal */}
-                <a
-                  href="https://wa.me/526699999999?text=Hola,%20quiero%20contratar%20KOTTA%20para%20mi%20condominio"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary w-full justify-center py-4 text-base mb-3"
-                >
-                  Contratar ahora
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </a>
-
-                {/* CTA secundario — WhatsApp */}
-                <a
-                  href="https://wa.me/526699999999?text=Hola,%20tengo%20dudas%20sobre%20KOTTA"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-ghost w-full justify-center py-3.5 text-sm"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 21l1.65-3.8a9 9 0 113.4 2.9L3 21z" stroke="#25D366" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                    <path d="M9 10c0 5 6 5 6 0" stroke="#25D366" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
-                  </svg>
-                  Hablar con un asesor por WhatsApp
-                </a>
-
-                <p className="text-center text-xs text-[#6B7A99] mt-4">
-                  Activación en menos de 24 hrs · Sin contrato forzado
-                </p>
-              </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Bloques de apoyo */}
-          <div className="lg:col-span-5 grid lg:grid-cols-3 gap-5">
-
-            {/* Comparación rápida */}
-            <div className="reveal rounded-2xl border border-[#E2E8F0] bg-[#F7F9FC] p-6">
-              <p className="text-xs font-medium text-[#6B7A99] uppercase tracking-wider mb-4">
-                ¿Por qué contratar KOTTA?
-              </p>
-              <div className="space-y-3">
-                {[
-                  { label: 'Grupo de WhatsApp', cost: 'Gratis', pain: 'Caos total, nada documentado', bad: true },
-                  { label: 'Hoja de Excel', cost: '$0', pain: 'Solo tú la entiendes', bad: true },
-                  { label: 'Solución a medida', cost: '$80,000+', pain: 'Meses de desarrollo', bad: true },
-                  { label: 'KOTTA', cost: 'Desde $3,500 MXN/mes', pain: 'Operando en 24 hrs', bad: false },
-                ].map((row, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center justify-between p-3 rounded-xl border ${
-                      !row.bad
-                        ? 'border-[#1E3A5F] bg-[#E8F0F9]'
-                        : 'border-[#E2E8F0] bg-white'
+                {/* Botón de Acción Principal */}
+                <div className="mt-8">
+                  <button
+                    type="button"
+                    className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300 ${
+                      plan.isPopular
+                        ? 'bg-white text-black hover:bg-neutral-100'
+                        : 'bg-black text-white hover:bg-neutral-900'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      {row.bad ? (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                          <circle cx="12" cy="12" r="10" fill="#E8503A" fillOpacity=".1"/>
-                          <path d="M15 9l-6 6M9 9l6 6" stroke="#E8503A" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                      ) : (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                          <circle cx="12" cy="12" r="10" fill="#1DB87E" fillOpacity=".15"/>
-                          <path d="M8 12l3 3 5-5" stroke="#1DB87E" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
-                      <div>
-                        <p className={`text-xs font-medium ${!row.bad ? 'text-[#1E3A5F]' : 'text-[#0F1F34]'}`}>
-                          {row.label}
-                        </p>
-                        <p className="text-[10px] text-[#6B7A99]">{row.pain}</p>
-                      </div>
-                    </div>
-                    <span className={`text-xs font-medium flex-shrink-0 ${!row.bad ? 'text-[#1E3A5F]' : 'text-[#6B7A99]'}`}>
-                      {row.cost}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Garantía / confianza */}
-            <div className="reveal rounded-2xl border border-[#E2E8F0] bg-white p-6">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-[#E6F9F1] flex items-center justify-center flex-shrink-0">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                      stroke="#1DB87E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                    <path d="M9 12l2 2 4-4" stroke="#1DB87E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-[#0F1F34] mb-1">Sin riesgo.</p>
-                  <p className="text-sm text-[#4A5568] leading-relaxed">
-                    Si en los primeros 30 días KOTTA no funciona para tu condominio,
-                    te devolvemos el pago sin preguntas.
-                  </p>
+                    {plan.buttonText}
+                  </button>
                 </div>
               </div>
-              <div className="space-y-2 pt-3 border-t border-[#E2E8F0]">
-                {[
-                  'Sin contrato de permanencia',
-                  'Cancela en cualquier momento',
-                  'Soporte incluido desde el día 1',
-                  'Activación en menos de 24 horas',
-                ].map((item) => (
-                  <div key={item} className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#1DB87E] flex-shrink-0" />
-                    <p className="text-xs text-[#4A5568]">{item}</p>
-                  </div>
-                ))}
-              </div>
+            );
+          })}
+        </div>
+
+        {/* Sección de Garantía y Confianza */}
+        <div className="mt-16 max-w-4xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-start gap-6 rounded-4xl border border-neutral-100 bg-white p-8 md:p-10 shadow-card">
+            {/* Icono */}
+            <div className="flex-shrink-0 flex items-center justify-center w-14 h-14 rounded-2xl bg-neutral-200">
+              <ShieldCheck className="w-7 h-7 text-neutral-900" strokeWidth={1.75} />
             </div>
 
-            {/* FAQ preview */}
-            <div className="reveal rounded-2xl border border-[#E2E8F0] bg-[#F7F9FC] p-6">
-              <p className="text-xs font-medium text-[#6B7A99] uppercase tracking-wider mb-4">
-                Preguntas frecuentes
+            {/* Contenido */}
+            <div className="flex-1 w-full">
+              <h3 className="font-gotham italic font-bold text-lg md:text-xl text-neutral-900 mb-2">
+                Sin riesgo.
+              </h3>
+              <p className="font-gotham italic text-sm md:text-base text-neutral-500 leading-relaxed mb-6 max-w-2xl">
+                Si en los primeros 30 días Kotta no funciona para tu condominio, te devolvemos el pago sin problema alguno
               </p>
-              <div className="space-y-2">
-                {FAQS_PREVIEW.map((q) => (
-                  <a
-                    key={q}
-                    href="#faq"
-                    className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#E2E8F0] hover:border-[#C5D5EE] transition-colors group"
-                  >
-                    <span className="text-sm text-[#4A5568] group-hover:text-[#1E3A5F] transition-colors">
-                      {q}
-                    </span>
-                    <svg className="flex-shrink-0 ml-2" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M9 18l6-6-6-6" stroke="#C5D5EE" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                  </a>
-                ))}
-              </div>
-              <a href="#faq" className="block text-center text-xs text-[#4FA8E8] mt-3 hover:underline">
-                Ver todas las preguntas →
-              </a>
-            </div>
 
+              <hr className="border-t border-neutral-100 mb-6" />
+
+              <ul className="space-y-3">
+                {GARANTIA_ITEMS.map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-200 flex-shrink-0" />
+                    <span className="font-gotham italic text-sm text-neutral-500">
+                      {item}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
+
+          {/* Cita de confianza */}
+          <p className="mt-10 text-center font-gotham italic text-lg md:text-xl text-neutral-500 max-w-2xl mx-auto">
+            "No existen funcionalidades <span className="font-bold text-neutral-900">bloqueadas</span> entre planes."
+          </p>
         </div>
 
       </div>
     </section>
-  )
+  );
 }

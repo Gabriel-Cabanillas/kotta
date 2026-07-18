@@ -1,7 +1,9 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import TicketsList from '@/components/admin/TicketsList'
+import TicketsListSkeleton from '@/components/admin/TicketsListSkeleton'
 
 export default async function TicketsPage({
   params, searchParams,
@@ -11,18 +13,7 @@ export default async function TicketsPage({
   if (user.role !== 'ADMIN') redirect('/dashboard')
   if (user.org?.slug !== params.coto) redirect('/dashboard')
 
-  const orgId = user.orgId!
-  const statusFilter = searchParams.status
-  const where = { orgId, ...(statusFilter && statusFilter !== 'TODOS' ? { status: statusFilter as any } : {}) }
-
-  const [tickets, proveedores, counts] = await Promise.all([
-    prisma.ticket.findMany({
-      where, orderBy: { createdAt: 'desc' },
-      include: { reportedBy: true, workOrder: { include: { provider: true } } },
-    }),
-    prisma.user.findMany({ where: { orgId, role: 'PROVEEDOR', isActive: true }, orderBy: { name: 'asc' } }),
-    prisma.ticket.groupBy({ by: ['status'], where: { orgId }, _count: true }),
-  ])
+  const statusFilter = searchParams.status ?? 'TODOS'
 
   return (
     <div>
@@ -30,8 +21,45 @@ export default async function TicketsPage({
         <h1 className="font-display text-2xl text-[#0F1F34] mb-1">Tickets</h1>
         <p className="text-sm text-[#6B7A99]">Reportes de vecinos y su estado actual</p>
       </div>
-      <TicketsList tickets={tickets as any} proveedores={proveedores as any}
-        counts={counts as any} coto={params.coto} currentStatus={statusFilter ?? 'TODOS'} />
+
+      {/* key=statusFilter fuerza un nuevo boundary de Suspense por tab,
+          asi el skeleton se muestra en cada cambio en vez de dejar la lista
+          anterior "congelada" mientras llega el nuevo filtro */}
+      <Suspense key={statusFilter} fallback={<TicketsListSkeleton />}>
+        <TicketsData coto={params.coto} orgId={user.orgId!} statusFilter={statusFilter} />
+      </Suspense>
     </div>
   )
 }
+
+async function TicketsData({
+  coto, orgId, statusFilter,
+}: { coto: string; orgId: string; statusFilter: string }) {
+  console.time('[Tickets] queries')
+  try {
+    const where = { orgId, ...(statusFilter !== 'TODOS' ? { status: statusFilter as any } : {}) }
+
+    const [tickets, proveedores, counts] = await Promise.all([
+      prisma.ticket.findMany({
+        where, orderBy: { createdAt: 'desc' },
+        include: { reportedBy: true, workOrder: { include: { provider: true } } },
+      }),
+      prisma.user.findMany({ where: { orgId, role: 'PROVEEDOR', isActive: true }, orderBy: { name: 'asc' } }),
+      prisma.ticket.groupBy({ by: ['status'], where: { orgId }, _count: true }),
+    ])
+
+    return (
+      <TicketsList
+        tickets={tickets as any}
+        proveedores={proveedores as any}
+        counts={counts as any}
+        coto={coto}
+        currentStatus={statusFilter}
+      />
+    )
+  } finally {
+    console.timeEnd('[Tickets] queries')
+  }
+}
+
+//Usar pnpm build || pnpm start

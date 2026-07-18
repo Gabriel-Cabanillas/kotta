@@ -12,6 +12,18 @@
  */
 import type { Metadata } from 'next'
 import './globals.css'
+import localFont from 'next/font/local'
+
+const gotham = localFont({
+  src: [
+    {path: '../../public/fonts/Gotham-Light.woff2', weight: '300', style: 'normal',},
+    {path: '../../public/fonts/Gotham-Book.woff2', weight: '400', style: 'normal'},
+    {path: '../../public/fonts/Gotham-Medium.woff2', weight: '500', style: 'normal'},
+    {path: '../../public/fonts/Gotham-Bold.woff2', weight: '700', style: 'normal'},
+    {path: '../../public/fonts/Gotham-Black.woff2', weight: '900', style: 'normal'},
+  ],
+  variable: '--font-gotham',
+})
 
 export const metadata: Metadata = {
   title: 'KOTTA — Tu comunidad, bajo control',
@@ -33,8 +45,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es">
-      <body>{children}</body>
+    <html lang="es" className={gotham.variable}>
+      <body className="font-gotham">
+        {children}
+      </body>
     </html>
   )
 }
