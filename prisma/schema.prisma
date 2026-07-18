@@ -137,6 +137,7 @@ model User {
   reservations       AmenityReservation[]
   sessions           Session[]
 
+  @@index([orgId, role])
   @@map("users")
 }
 
@@ -163,6 +164,7 @@ model Ticket {
   workOrder WorkOrder?
 
   @@unique([orgId, folio])
+  @@index([orgId, status, createdAt])
   @@map("tickets")
 }
 
@@ -191,6 +193,7 @@ model WorkOrder {
 
   accessLog  AccessLog?
 
+  @@index([orgId, createdAt])
   @@map("work_orders")
 }
 
@@ -211,6 +214,7 @@ model Asset {
   orgId String
   org   Organization @relation(fields: [orgId], references: [id])
 
+  @@index([orgId, createdAt])
   @@map("assets")
 }
 
@@ -234,6 +238,8 @@ model Payment {
   user   User   @relation(fields: [userId], references: [id])
 
   @@unique([orgId, userId, month, year])
+  @@index([orgId, year, month])
+  @@index([orgId, status])
   @@map("payments")
 }
 

@@ -95,21 +95,21 @@ export default function AdminSidebar({ coto }: { coto: string }) {
   const base = `/${coto}/admin`
 
   return (
-    <aside className="hidden md:flex flex-col w-60 bg-[#1E3A5F] min-h-screen flex-shrink-0">
+    <aside className="hidden md:flex flex-col w-60 bg-black min-h-screen flex-shrink-0">
       {/* Logo */}
-        <div className="flex items-center pl-18 pr-5 py-5 border-b border-white/10">
+      <div className="flex items-center px-6 py-6 border-b border-white/10">
         <a href="#" className="flex items-center" aria-label="KOTTA inicio">
-            <img
+          <img
             src="/Logocompletowhite.svg"
             alt="KOTTA"
             className="h-8 w-auto"
-            />
+          />
         </a>
-        </div>
+      </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.map((item, i) => {
           const href = `${base}${item.href}`
           const isActive = item.href === ''
             ? pathname === base
@@ -120,13 +120,25 @@ export default function AdminSidebar({ coto }: { coto: string }) {
               key={item.href}
               href={href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+                'group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-xl text-sm font-medium',
+                'animate-fade-up transition-[color,background-color,transform] duration-200 ease-out',
                 isActive
-                  ? 'bg-white/15 text-white'
-                  : 'text-[#8BA8C4] hover:bg-white/8 hover:text-white'
+                  ? 'bg-white/[0.08] text-white'
+                  : 'text-white/45 hover:bg-white/5 hover:text-white/90 hover:translate-x-0.5'
               )}
+              style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'backwards' }}
             >
-              <span className="flex-shrink-0">{item.icon}</span>
+              {/* Indicador de sección activa */}
+              <span
+                className={cn(
+                  'absolute -left-3 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-red',
+                  'transition-all duration-200 ease-out',
+                  isActive ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0'
+                )}
+              />
+              <span className="flex-shrink-0 transition-transform duration-200 ease-out group-hover:scale-105">
+                {item.icon}
+              </span>
               {item.label}
             </Link>
           )
@@ -137,9 +149,15 @@ export default function AdminSidebar({ coto }: { coto: string }) {
       <div className="px-3 py-4 border-t border-white/10">
         <Link
           href="/"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#8BA8C4] hover:text-white hover:bg-white/8 transition-all"
+          className="group flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-xl text-sm text-white/45 hover:text-white hover:bg-white/5 transition-colors duration-200 ease-out"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            className="flex-shrink-0 transition-transform duration-200 ease-out group-hover:-translate-x-0.5"
+          >
             <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
               stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
           </svg>

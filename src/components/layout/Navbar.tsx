@@ -13,10 +13,11 @@ import { useState, useEffect } from 'react'
 import { cn } from '@/components/lib/utils'
 
 const NAV_LINKS = [
-  { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Características', href: '#caracteristicas' },
+  { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Precio', href: '#precio' },
   { label: 'FAQ', href: '#faq' },
+  { label: 'About', href: '#about' },
 ]
 
 export default function Navbar() {
@@ -44,7 +45,7 @@ export default function Navbar() {
           {/* Logo */}  
         <a href="#" className="flex items-center" aria-label="KOTTA inicio">
         <img
-            src="/Logocompleto.svg"
+            src="/Logo_for_kotta.svg"
             alt="KOTTA"
             className="h-8 w-auto"
         />
@@ -66,10 +67,7 @@ export default function Navbar() {
 
           {/* CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <a href="#precio" className="btn-ghost text-sm py-2 px-4">
-              Ver precio
-            </a>
-
+            
             {/*Este botón llevara a la página del Login */}
             <a href="/sign-in" className="btn-primary text-sm py-2.5 px-5">
               Login

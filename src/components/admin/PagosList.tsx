@@ -60,10 +60,12 @@ export default function PagosList({
     status:  'PAGADO',
   })
 
-  const STATUS_COLORS: Record<string, { color: string; bg: string; label: string }> = {
-    PENDIENTE: { color: '#F5A623', bg: '#FEF3E2', label: 'Pendiente' },
-    PAGADO:    { color: '#1DB87E', bg: '#E6F9F1', label: 'Pagado'    },
-    VENCIDO:   { color: '#E8503A', bg: '#FEECEA', label: 'Vencido'   },
+  // Estilos por estado — clases estáticas (Tailwind necesita las clases completas
+  // presentes en el archivo para poder generarlas, no admite interpolación dinámica)
+  const STATUS_COLORS: Record<string, { label: string; dot: string; badge: string }> = {
+    PENDIENTE: { label: 'Pendiente', dot: 'bg-warning', badge: 'bg-warning/10 text-warning' },
+    PAGADO:    { label: 'Pagado',    dot: 'bg-success', badge: 'bg-success/10 text-success' },
+    VENCIDO:   { label: 'Vencido',   dot: 'bg-danger',  badge: 'bg-danger/10 text-danger'   },
   }
 
   const filtered = filterStatus === 'TODOS'
@@ -107,15 +109,23 @@ export default function PagosList({
   return (
     <div>
       {/* Stats rápidos */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-8">
         {[
-          { label: 'Pagados',   value: totalPagado,   color: '#1DB87E', bg: '#E6F9F1' },
-          { label: 'Pendientes', value: totalPendiente, color: '#F5A623', bg: '#FEF3E2' },
-          { label: 'Vencidos',  value: totalVencido,  color: '#E8503A', bg: '#FEECEA' },
+          { key: 'PAGADO',    label: 'Pagados',    value: totalPagado },
+          { key: 'PENDIENTE', label: 'Pendientes', value: totalPendiente },
+          { key: 'VENCIDO',   label: 'Vencidos',   value: totalVencido },
         ].map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
-            <p className="text-xs text-[#6B7A99] mb-2">{s.label}</p>
-            <p className="font-display text-3xl" style={{ color: s.color }}>{s.value}</p>
+          <div
+            key={s.key}
+            className="bg-white rounded-2xl border border-neutral-100 p-5 transition-all duration-300 hover:border-neutral-200 hover:shadow-card"
+          >
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[s.key].dot}`} />
+              <p className="text-xs font-medium text-neutral-400 uppercase tracking-[0.06em]">
+                {s.label}
+              </p>
+            </div>
+            <p className="text-3xl font-medium text-neutral-900 tabular-nums">{s.value}</p>
           </div>
         ))}
       </div>
@@ -127,10 +137,10 @@ export default function PagosList({
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 ${
                 filterStatus === s
-                  ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
-                  : 'bg-white text-[#4A5568] border-[#E2E8F0] hover:border-[#C5D5EE]'
+                  ? 'bg-black text-white border-black'
+                  : 'bg-white text-neutral-400 border-neutral-100 hover:border-neutral-200 hover:text-neutral-900'
               }`}
             >
               {s === 'TODOS' ? 'Todos' : STATUS_COLORS[s].label}
@@ -149,36 +159,41 @@ export default function PagosList({
       </div>
 
       {/* Lista */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden">
+      <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
         {filtered.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-[#6B7A99] text-sm">No hay pagos registrados.</p>
+            <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M3 10h18M7 15h2m4 0h4M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="#A6A6A6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <p className="text-neutral-400 text-sm">No hay pagos registrados.</p>
           </div>
         ) : (
-          <div className="divide-y divide-[#E2E8F0]">
+          <div className="divide-y divide-neutral-100">
             {filtered.map((pago) => {
               const st = STATUS_COLORS[pago.status] ?? STATUS_COLORS.PENDIENTE
               return (
                 <div
                   key={pago.id}
-                  className="flex items-center justify-between px-6 py-4 hover:bg-[#F7F9FC] transition-colors"
+                  className="flex items-center justify-between px-6 py-4 transition-colors duration-150 hover:bg-black/[0.015]"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-9 h-9 rounded-full bg-[#E8F0F9] flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-medium text-[#1E3A5F]">
+                    <div className="w-9 h-9 rounded-full bg-neutral-900 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-medium text-white">
                         {pago.user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
                       </span>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-[#0F1F34]">
+                      <p className="text-sm font-medium text-neutral-900">
                         {pago.user.name}
                         {pago.user.houseNumber && (
-                          <span className="text-[#6B7A99] font-normal ml-1.5">
+                          <span className="text-neutral-400 font-normal ml-1.5">
                             Casa {pago.user.houseNumber}
                           </span>
                         )}
                       </p>
-                      <p className="text-xs text-[#6B7A99]">
+                      <p className="text-xs text-neutral-400">
                         {MESES[pago.month - 1]} {pago.year} ·{' '}
                         ${Number(pago.amount).toLocaleString('es-MX')}
                         {pago.paidAt && (
@@ -193,16 +208,14 @@ export default function PagosList({
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span
-                      className="text-xs font-medium px-2.5 py-1 rounded-full"
-                      style={{ color: st.color, background: st.bg }}
-                    >
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${st.badge}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
                       {st.label}
                     </span>
                     {pago.status !== 'PAGADO' && (
                       <button
                         onClick={() => handleMarcarPagado(pago.id)}
-                        className="text-xs text-[#1DB87E] border border-[#9FE1CB] hover:bg-[#E6F9F1] px-3 py-1.5 rounded-lg transition-all"
+                        className="text-xs font-medium text-neutral-900 border border-neutral-100 hover:border-black px-3 py-1.5 rounded-lg transition-all duration-150"
                       >
                         Marcar pagado
                       </button>
@@ -218,16 +231,16 @@ export default function PagosList({
       {/* Modal registrar pago */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-[2px] z-50 flex items-center justify-center p-4"
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-white rounded-2xl border border-[#E2E8F0] w-full max-w-md shadow-xl"
+            className="bg-white rounded-3xl border border-neutral-100 w-full max-w-md shadow-black"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
-              <h3 className="font-medium text-[#0F1F34]">Registrar pago</h3>
-              <button onClick={() => setShowModal(false)} className="text-[#6B7A99] hover:text-[#0F1F34] p-1">
+            <div className="flex items-center justify-between p-6 border-b border-neutral-100">
+              <h3 className="font-medium text-neutral-900">Registrar pago</h3>
+              <button onClick={() => setShowModal(false)} className="text-neutral-400 hover:text-neutral-900 p-1 transition-colors">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                   <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
@@ -236,11 +249,11 @@ export default function PagosList({
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-xs text-[#6B7A99] mb-1.5 block">Vecino *</label>
+                <label className="text-xs font-medium text-neutral-400 uppercase tracking-[0.04em] mb-1.5 block">Vecino *</label>
                 <select
                   value={form.userId}
                   onChange={(e) => setForm((f) => ({ ...f, userId: e.target.value }))}
-                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                  className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors"
                 >
                   <option value="">Seleccionar vecino...</option>
                   {vecinos.map((v) => (
@@ -253,11 +266,11 @@ export default function PagosList({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-[#6B7A99] mb-1.5 block">Mes</label>
+                  <label className="text-xs font-medium text-neutral-400 uppercase tracking-[0.04em] mb-1.5 block">Mes</label>
                   <select
                     value={form.month}
                     onChange={(e) => setForm((f) => ({ ...f, month: Number(e.target.value) }))}
-                    className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                    className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors"
                   >
                     {MESES.map((m, i) => (
                       <option key={i} value={i + 1}>{m}</option>
@@ -265,32 +278,32 @@ export default function PagosList({
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-[#6B7A99] mb-1.5 block">Año</label>
+                  <label className="text-xs font-medium text-neutral-400 uppercase tracking-[0.04em] mb-1.5 block">Año</label>
                   <input
                     type="number"
                     value={form.year}
                     onChange={(e) => setForm((f) => ({ ...f, year: Number(e.target.value) }))}
-                    className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                    className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-[#6B7A99] mb-1.5 block">Monto (MXN) *</label>
+                <label className="text-xs font-medium text-neutral-400 uppercase tracking-[0.04em] mb-1.5 block">Monto (MXN) *</label>
                 <input
                   type="number"
                   value={form.amount}
                   onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                  className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-[#6B7A99] mb-1.5 block">Estado</label>
+                <label className="text-xs font-medium text-neutral-400 uppercase tracking-[0.04em] mb-1.5 block">Estado</label>
                 <select
                   value={form.status}
                   onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                  className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors"
                 >
                   <option value="PAGADO">Pagado</option>
                   <option value="PENDIENTE">Pendiente</option>
@@ -299,13 +312,13 @@ export default function PagosList({
               </div>
 
               <div>
-                <label className="text-xs text-[#6B7A99] mb-1.5 block">Notas (opcional)</label>
+                <label className="text-xs font-medium text-neutral-400 uppercase tracking-[0.04em] mb-1.5 block">Notas (opcional)</label>
                 <input
                   type="text"
                   value={form.notes}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   placeholder="Ej. Pago parcial, transferencia..."
-                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE]"
+                  className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors placeholder:text-neutral-400"
                 />
               </div>
             </div>

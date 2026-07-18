@@ -16,10 +16,11 @@
 import Navbar   from '@/components/layout/Navbar'
 import Hero     from '@/components/sections/Hero'
 import Problem  from '@/components/sections/Problem'
-import HowItWorks from '@/components/sections/Howitworks'
-import Features from '@/components/sections/Features'
+import Characteristics from '@/components/sections/Characteristics'
 
-import Pillars from '@/components/sections/Pillars'
+import HowItWorks from '@/components/sections/Howitworks'
+
+// import Pillars from '@/components/sections/Pillars'
 import Pricing from '@/components/sections/Pricing'
 import FAQ from '@/components/sections/FAQ'
 import CTAFinal from '@/components/sections/CTAFinal'
@@ -31,9 +32,8 @@ export default function HomePage() {
       <Navbar />
       <Hero />
       <Problem />
+      <Characteristics />
       <HowItWorks />
-      <Features />
-      <Pillars />
       <Pricing />
       <FAQ />
       <CTAFinal />

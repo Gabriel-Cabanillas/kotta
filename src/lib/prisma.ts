@@ -10,6 +10,11 @@
  *
  * Existe para que todo el proyecto use una sola entrada consistente hacia la
  * base de datos multi-coto de Kotta.
+ *
+ * keepAlive esta activado para que el pool mande paquetes TCP periodicos y el
+ * router/ISP/firewall del lado del cliente no mate la conexion por
+ * inactividad silenciosamente (causa comun de picos de 1-2s por reconexion
+ * en redes domesticas, incluso con idleTimeoutMillis alto del lado de pg.Pool).
  */
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
@@ -24,9 +29,12 @@ function createPrismaClient(): PrismaClient {
   const pool = new pg.Pool({
     connectionString,
     max: 10,
-    idleTimeoutMillis: 30000,
+    min: 2,
+    idleTimeoutMillis: 300000,
     connectionTimeoutMillis: 10000,
-  })  
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
+  })
   const adapter = new PrismaPg(pool as any)
   return new PrismaClient({ adapter } as any) as PrismaClient
 }

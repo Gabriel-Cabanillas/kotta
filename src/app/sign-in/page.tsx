@@ -16,6 +16,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
+import { ArrowRight, Mail } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -55,33 +57,46 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="relative min-h-screen bg-white flex items-center justify-center p-4 overflow-hidden">
+      {/* Textura de fondo sutil — profundidad sin ruido visual */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(0,0,0,0.035),transparent_55%)]"
+        aria-hidden="true"
+      />
+
+      <div className="relative w-full max-w-md">
 
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-[#1E3A5F] flex items-center justify-center mx-auto mb-4">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-              <path d="M4 6h16M4 12h10M4 18h13" stroke="#4FA8E8" strokeWidth="2.2" strokeLinecap="round"/>
-              <circle cx="19" cy="18" r="3.5" fill="#4FA8E8"/>
-            </svg>
-          </div>
-          <h1 className="font-display text-2xl text-[#0F1F34]">Bienvenido a KOTTA</h1>
-          <p className="text-sm text-[#6B7A99] mt-1">Ingresa a tu panel</p>
+        <div className="text-center mb-10">
+          <Image
+            src="/LogoKnegro.svg"
+            alt="KOTTA"
+            width={168}
+            height={44}
+            priority
+            className="h-9 w-auto mx-auto mb-6"
+          />
+          <h1 className="font-gotham text-4xl font-medium text-black tracking-tight">
+            Bienvenido a KOTTA
+          </h1>
+          <p className="text-sm text-neutral-400 mt-2">
+            Ingresa a tu panel
+          </p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 shadow-sm">
+        <div className="bg-white rounded-3xl border border-neutral-100 p-8 shadow-card">
 
           {error && (
-            <div className="bg-[#FEECEA] border border-[#FACAC3] rounded-xl px-4 py-3 mb-5">
-              <p className="text-sm text-[#E8503A]">{error}</p>
+            <div className="flex items-start gap-2.5 bg-red/[0.06] border border-red/20 rounded-xl px-4 py-3 mb-5">
+              <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-red shrink-0" aria-hidden="true" />
+              <p className="text-sm text-neutral-900">{error}</p>
             </div>
           )}
 
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-[#6B7A99] mb-1.5 block">
+              <label className="text-[11px] font-medium uppercase tracking-[0.06em] text-neutral-400 mb-1.5 block">
                 Correo electrónico
               </label>
               <input
@@ -90,12 +105,12 @@ export default function LoginPage() {
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                 placeholder="tu@correo.com"
                 onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                className="w-full text-sm border border-[#E2E8F0] rounded-xl px-4 py-3 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE] transition-colors"
+                className="w-full text-sm border border-neutral-100 rounded-xl px-4 py-3 text-neutral-900 bg-white focus:outline-none focus:border-black placeholder:text-neutral-400 transition-colors"
               />
             </div>
 
             <div>
-              <label className="text-xs font-medium text-[#6B7A99] mb-1.5 block">
+              <label className="text-[11px] font-medium uppercase tracking-[0.06em] text-neutral-400 mb-1.5 block">
                 Contraseña
               </label>
               <input
@@ -104,7 +119,7 @@ export default function LoginPage() {
                 onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                 placeholder="Tu contraseña"
                 onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                className="w-full text-sm border border-[#E2E8F0] rounded-xl px-4 py-3 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE] transition-colors"
+                className="w-full text-sm border border-neutral-100 rounded-xl px-4 py-3 text-neutral-900 bg-white focus:outline-none focus:border-black placeholder:text-neutral-400 transition-colors"
               />
             </div>
           </div>
@@ -115,23 +130,20 @@ export default function LoginPage() {
             className="btn-primary w-full justify-center py-3.5 mt-6 text-base disabled:opacity-50"
           >
             {loading ? 'Verificando...' : 'Continuar'}
-            {!loading && (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            )}
+            {!loading && <ArrowRight size={16} strokeWidth={2} />}
           </button>
 
-          <div className="bg-[#E8F4FD] rounded-xl px-4 py-3 mt-4">
-            <p className="text-xs text-[#185FA5]">
+          <div className="flex items-start gap-2.5 bg-neutral-100/70 rounded-xl px-4 py-3 mt-4">
+            <Mail size={14} strokeWidth={1.8} className="mt-[2px] shrink-0 text-neutral-800" />
+            <p className="text-xs text-neutral-800">
               Recibirás un código de verificación en tu correo para confirmar tu identidad.
             </p>
           </div>
         </div>
 
-        <p className="text-center text-sm text-[#6B7A99] mt-6">
+        <p className="text-center text-sm text-neutral-400 mt-6">
           ¿No tienes cuenta?{' '}
-          <Link href="/sign-up" className="text-[#4FA8E8] hover:underline font-medium">
+          <Link href="/sign-up" className="text-black hover:text-red font-medium transition-colors">
             Registrar condominio
           </Link>
         </p>
