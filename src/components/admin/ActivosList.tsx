@@ -7,26 +7,43 @@
  * Existe para que el ADMIN mantenga el inventario operativo del coto dentro de
  * la administracion central de Kotta.
  */
+
+// Ya se rediseño
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  Plus,
+  X,
+  Droplet,
+  DoorOpen,
+  Lightbulb,
+  Users,
+  Zap,
+  Droplets,
+  Box,
+  MapPin,
+  Calendar,
+  PackageSearch,
+  type LucideIcon,
+} from 'lucide-react'
 
-const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  OK:       { color: '#1DB87E', bg: '#E6F9F1', label: 'OK'       },
-  REVISION: { color: '#F5A623', bg: '#FEF3E2', label: 'Revisar'  },
-  URGENTE:  { color: '#E8503A', bg: '#FEECEA', label: 'Urgente'  },
-  INACTIVO: { color: '#6B7A99', bg: '#F1F5F9', label: 'Inactivo' },
+const STATUS_CONFIG: Record<string, { dot: string; text: string; bg: string; label: string }> = {
+  OK:       { dot: '#2BC842', text: '#178B4E', bg: '#EAFBEE', label: 'OK'       },
+  REVISION: { dot: '#FFBA2E', text: '#B4790A', bg: '#FFF8E7', label: 'Revisar'  },
+  URGENTE:  { dot: '#FD5F56', text: '#D5453C', bg: '#FEECEA', label: 'Urgente'  },
+  INACTIVO: { dot: '#A6A6A6', text: '#71716F', bg: '#F2F2F1', label: 'Inactivo' },
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  BOMBA:            'Bomba',
-  PORTON:           'Portón',
-  ILUMINACION:      'Iluminación',
-  AREA_COMUN:       'Área común',
-  SISTEMA_ELECTRICO:'Sistema eléctrico',
-  CISTERNA:         'Cisterna',
-  OTRO:             'Otro',
+const CATEGORY_CONFIG: Record<string, { label: string; icon: LucideIcon }> = {
+  BOMBA:             { label: 'Bomba',            icon: Droplet   },
+  PORTON:            { label: 'Portón',            icon: DoorOpen  },
+  ILUMINACION:       { label: 'Iluminación',       icon: Lightbulb },
+  AREA_COMUN:        { label: 'Área común',        icon: Users     },
+  SISTEMA_ELECTRICO: { label: 'Sistema eléctrico', icon: Zap       },
+  CISTERNA:          { label: 'Cisterna',          icon: Droplets  },
+  OTRO:              { label: 'Otro',              icon: Box       },
 }
 
 type Activo = {
@@ -128,12 +145,23 @@ export default function ActivosList({
 
   return (
     <div>
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* Resumen por estado */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-          <div key={key} className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
-            <p className="text-xs text-[#6B7A99] mb-2">{cfg.label}</p>
-            <p className="font-display text-3xl" style={{ color: cfg.color }}>
+          <div
+            key={key}
+            className="bg-white border border-neutral-100 rounded-2xl px-5 py-4 transition-all duration-200 hover:border-neutral-200 hover:shadow-card"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <span
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                style={{ background: cfg.dot }}
+              />
+              <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wider">
+                {cfg.label}
+              </p>
+            </div>
+            <p className="font-display text-3xl font-medium text-neutral-900 tabular-nums">
               {counts[key as keyof typeof counts]}
             </p>
           </div>
@@ -141,16 +169,16 @@ export default function ActivosList({
       </div>
 
       {/* Filtros + botón */}
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
-        <div className="flex gap-2 flex-wrap">
+      <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+        <div className="flex items-center gap-1 bg-neutral-100/70 p-1 rounded-full overflow-x-auto">
           {['TODOS', 'OK', 'REVISION', 'URGENTE', 'INACTIVO'].map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-all duration-200 ${
                 filterStatus === s
-                  ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
-                  : 'bg-white text-[#4A5568] border-[#E2E8F0] hover:border-[#C5D5EE]'
+                  ? 'bg-black text-white shadow-sm'
+                  : 'text-neutral-400 hover:text-neutral-900'
               }`}
             >
               {s === 'TODOS' ? 'Todos' : STATUS_CONFIG[s].label}
@@ -158,29 +186,33 @@ export default function ActivosList({
           ))}
         </div>
         <button onClick={openCreate} className="btn-primary text-sm py-2.5 px-5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-          </svg>
+          <Plus size={15} strokeWidth={2.5} />
           Agregar activo
         </button>
       </div>
 
       {/* Lista */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden">
+      <div className="bg-white border border-neutral-100 rounded-2xl overflow-hidden">
         {filtered.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-[#6B7A99] text-sm">No hay activos registrados.</p>
+          <div className="py-20 text-center px-6">
+            <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
+              <PackageSearch size={20} strokeWidth={1.75} className="text-neutral-400" />
+            </div>
+            <p className="text-neutral-400 text-sm">No hay activos registrados.</p>
             <button
               onClick={openCreate}
-              className="mt-3 text-sm text-[#4FA8E8] hover:underline"
+              className="mt-3 text-sm font-medium text-neutral-900 hover:text-red transition-colors inline-flex items-center gap-1"
             >
-              Agregar el primero →
+              Agregar el primero
+              <span aria-hidden="true">→</span>
             </button>
           </div>
         ) : (
-          <div className="divide-y divide-[#E2E8F0]">
+          <div className="divide-y divide-neutral-100">
             {filtered.map((activo) => {
-              const st = STATUS_CONFIG[activo.status] ?? STATUS_CONFIG.OK
+              const st  = STATUS_CONFIG[activo.status] ?? STATUS_CONFIG.OK
+              const cat = CATEGORY_CONFIG[activo.category] ?? CATEGORY_CONFIG.OTRO
+              const Icon = cat.icon
               const diasParaMantenimiento = activo.nextMaintenance
                 ? Math.ceil(
                     (new Date(activo.nextMaintenance).getTime() - Date.now()) /
@@ -191,46 +223,46 @@ export default function ActivosList({
               return (
                 <div
                   key={activo.id}
-                  className="flex items-center justify-between px-6 py-4 hover:bg-[#F7F9FC] transition-colors cursor-pointer"
+                  className="group flex items-center justify-between gap-4 px-6 py-4 hover:bg-neutral-100/40 transition-colors cursor-pointer"
                   onClick={() => openEdit(activo)}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 min-w-0">
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
                       style={{ background: st.bg }}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <rect x="2" y="3" width="20" height="14" rx="2"
-                          stroke={st.color} strokeWidth="1.8" fill="none"/>
-                        <path d="M8 21h8M12 17v4"
-                          stroke={st.color} strokeWidth="1.8" strokeLinecap="round"/>
-                      </svg>
+                      <Icon size={17} strokeWidth={1.75} style={{ color: st.text }} />
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-[#0F1F34]">{activo.name}</p>
-                      <p className="text-xs text-[#6B7A99]">
-                        {CATEGORY_LABELS[activo.category]}
-                        {activo.location && ` · ${activo.location}`}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-neutral-900 truncate">{activo.name}</p>
+                      <p className="text-xs text-neutral-400 mt-0.5 truncate">
+                        {cat.label}
+                        {activo.location && (
+                          <span className="inline-flex items-center gap-1 ml-1.5">
+                            <MapPin size={11} strokeWidth={2} className="inline -mt-0.5" />
+                            {activo.location}
+                          </span>
+                        )}
                       </p>
                       {activo.lastMaintenance && (
-                        <p className="text-xs text-[#6B7A99] mt-0.5">
-                          Último mant:{' '}
-                          {new Date(activo.lastMaintenance).toLocaleDateString('es-MX', {
+                        <p className="text-xs text-neutral-400 mt-1 flex items-center gap-1">
+                          <Calendar size={11} strokeWidth={2} />
+                          Último mant. {new Date(activo.lastMaintenance).toLocaleDateString('es-MX', {
                             day: 'numeric', month: 'short', year: 'numeric',
                           })}
                         </p>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {diasParaMantenimiento !== null && (
                       <span
-                        className={`text-xs px-2.5 py-1 rounded-full ${
+                        className={`hidden sm:inline-flex text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${
                           diasParaMantenimiento <= 0
-                            ? 'bg-[#FEECEA] text-[#E8503A]'
+                            ? 'bg-red/10 text-red'
                             : diasParaMantenimiento <= 30
-                            ? 'bg-[#FEF3E2] text-[#F5A623]'
-                            : 'bg-[#F1F5F9] text-[#6B7A99]'
+                            ? 'bg-[#FFBA2E]/15 text-[#B4790A]'
+                            : 'bg-neutral-100 text-neutral-400'
                         }`}
                       >
                         {diasParaMantenimiento <= 0
@@ -239,8 +271,8 @@ export default function ActivosList({
                       </span>
                     )}
                     <span
-                      className="text-xs font-medium px-2.5 py-1 rounded-full"
-                      style={{ color: st.color, background: st.bg }}
+                      className="text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap"
+                      style={{ color: st.text, background: st.bg }}
                     >
                       {st.label}
                     </span>
@@ -255,55 +287,63 @@ export default function ActivosList({
       {/* Modal crear/editar */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-[2px] z-50 flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-white rounded-2xl border border-[#E2E8F0] w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-3xl border border-neutral-100 w-full max-w-md shadow-black max-h-[90vh] overflow-y-auto animate-fade-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
-              <h3 className="font-medium text-[#0F1F34]">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-100">
+              <h3 className="font-medium text-neutral-900">
                 {selectedActivo ? 'Editar activo' : 'Agregar activo'}
               </h3>
-              <button onClick={() => setShowModal(false)} className="text-[#6B7A99] hover:text-[#0F1F34] p-1">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
+              <button
+                onClick={() => setShowModal(false)}
+                aria-label="Cerrar"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+              >
+                <X size={16} strokeWidth={2} />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-xs text-[#6B7A99] mb-1.5 block">Nombre *</label>
+                <label className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1.5 block">
+                  Nombre *
+                </label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   placeholder="Ej. Bomba principal cisterna norte"
-                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE]"
+                  className="w-full text-sm border border-neutral-100 rounded-xl px-3.5 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors placeholder:text-neutral-400/70"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-[#6B7A99] mb-1.5 block">Categoría</label>
+                  <label className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1.5 block">
+                    Categoría
+                  </label>
                   <select
                     value={form.category}
                     onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                    className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                    className="w-full text-sm border border-neutral-100 rounded-xl px-3.5 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors"
                   >
-                    {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
-                      <option key={k} value={k}>{v}</option>
+                    {Object.entries(CATEGORY_CONFIG).map(([k, v]) => (
+                      <option key={k} value={k}>{v.label}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-[#6B7A99] mb-1.5 block">Estado</label>
+                  <label className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1.5 block">
+                    Estado
+                  </label>
                   <select
                     value={form.status}
                     onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                    className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                    className="w-full text-sm border border-neutral-100 rounded-xl px-3.5 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors"
                   >
                     {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                       <option key={k} value={k}>{v.label}</option>
@@ -313,54 +353,58 @@ export default function ActivosList({
               </div>
 
               <div>
-                <label className="text-xs text-[#6B7A99] mb-1.5 block">Ubicación</label>
+                <label className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1.5 block">
+                  Ubicación
+                </label>
                 <input
                   type="text"
                   value={form.location}
                   onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
                   placeholder="Ej. Cisterna norte, Área B"
-                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE]"
+                  className="w-full text-sm border border-neutral-100 rounded-xl px-3.5 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors placeholder:text-neutral-400/70"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-[#6B7A99] mb-1.5 block">Descripción</label>
+                <label className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1.5 block">
+                  Descripción
+                </label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   placeholder="Notas adicionales sobre este activo..."
                   rows={2}
-                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE] resize-none"
+                  className="w-full text-sm border border-neutral-100 rounded-xl px-3.5 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors placeholder:text-neutral-400/70 resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-[#6B7A99] mb-1.5 block">
+                  <label className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1.5 block">
                     Último mantenimiento
                   </label>
                   <input
                     type="date"
                     value={form.lastMaintenance}
                     onChange={(e) => setForm((f) => ({ ...f, lastMaintenance: e.target.value }))}
-                    className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                    className="w-full text-sm border border-neutral-100 rounded-xl px-3.5 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-[#6B7A99] mb-1.5 block">
+                  <label className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1.5 block">
                     Próximo mantenimiento
                   </label>
                   <input
                     type="date"
                     value={form.nextMaintenance}
                     onChange={(e) => setForm((f) => ({ ...f, nextMaintenance: e.target.value }))}
-                    className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                    className="w-full text-sm border border-neutral-100 rounded-xl px-3.5 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-3 px-6 pb-6">
+            <div className="flex gap-3 px-6 pb-6 pt-1">
               <button
                 onClick={() => setShowModal(false)}
                 className="btn-ghost flex-1 py-3 text-sm justify-center"
@@ -370,7 +414,7 @@ export default function ActivosList({
               <button
                 onClick={handleSubmit}
                 disabled={!form.name || loading}
-                className="btn-primary flex-1 py-3 text-sm justify-center disabled:opacity-50"
+                className="btn-primary flex-1 py-3 text-sm justify-center disabled:opacity-50 disabled:pointer-events-none"
               >
                 {loading ? 'Guardando...' : selectedActivo ? 'Guardar cambios' : 'Agregar activo'}
               </button>

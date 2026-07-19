@@ -7,16 +7,31 @@
  * Existe para que el ADMIN de seguimiento al trabajo de proveedores y mantenga
  * sincronizado el flujo entre tickets y ordenes.
  */
+
+// Ya se rediseño
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  Clock,
+  Wrench,
+  CheckCircle2,
+  XCircle,
+  X,
+  ImageOff,
+  Loader2,
+  type LucideIcon,
+} from 'lucide-react'
 
-const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  PENDIENTE:   { color: '#6B7A99', bg: '#F1F5F9', label: 'Pendiente'   },
-  EN_PROCESO:  { color: '#F5A623', bg: '#FEF3E2', label: 'En proceso'  },
-  COMPLETADA:  { color: '#1DB87E', bg: '#E6F9F1', label: 'Completada'  },
-  CANCELADA:   { color: '#E8503A', bg: '#FEECEA', label: 'Cancelada'   },
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; icon: LucideIcon; text: string; bg: string }
+> = {
+  PENDIENTE:  { label: 'Pendiente',  icon: Clock,        text: 'text-neutral-400', bg: 'bg-neutral-100' },
+  EN_PROCESO: { label: 'En proceso', icon: Wrench,       text: 'text-warning',     bg: 'bg-warning/10'  },
+  COMPLETADA: { label: 'Completada', icon: CheckCircle2, text: 'text-success',     bg: 'bg-success/10'  },
+  CANCELADA:  { label: 'Cancelada',  icon: XCircle,      text: 'text-danger',      bg: 'bg-danger/10'   },
 }
 
 type Orden = {
@@ -94,15 +109,25 @@ export default function OrdenesList({
   return (
     <div>
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-          <div key={key} className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
-            <p className="text-xs text-[#6B7A99] mb-2">{cfg.label}</p>
-            <p className="font-display text-3xl" style={{ color: cfg.color }}>
-              {counts[key as keyof typeof counts]}
-            </p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
+          const Icon = cfg.icon
+          return (
+            <div key={key} className="card p-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-medium text-neutral-400 uppercase tracking-[0.04em]">
+                  {cfg.label}
+                </p>
+                <span className={`w-7 h-7 rounded-lg flex items-center justify-center ${cfg.bg}`}>
+                  <Icon size={14} className={cfg.text} strokeWidth={2} />
+                </span>
+              </div>
+              <p className="text-3xl font-medium text-neutral-900">
+                {counts[key as keyof typeof counts]}
+              </p>
+            </div>
+          )
+        })}
       </div>
 
       {/* Filtros */}
@@ -111,10 +136,10 @@ export default function OrdenesList({
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+            className={`px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 ${
               filterStatus === s
-                ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
-                : 'bg-white text-[#4A5568] border-[#E2E8F0] hover:border-[#C5D5EE]'
+                ? 'bg-black text-white border-black'
+                : 'bg-white text-neutral-400 border-neutral-100 hover:border-black hover:text-neutral-900'
             }`}
           >
             {s === 'TODOS' ? 'Todas' : STATUS_CONFIG[s].label}
@@ -123,64 +148,60 @@ export default function OrdenesList({
       </div>
 
       {/* Lista */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden">
+      <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
         {filtered.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-[#6B7A99] text-sm">No hay órdenes en esta categoría.</p>
-            <p className="text-xs text-[#6B7A99] mt-1">
+          <div className="py-20 text-center">
+            <p className="text-neutral-900 text-sm font-medium">
+              No hay órdenes en esta categoría
+            </p>
+            <p className="text-xs text-neutral-400 mt-1.5">
               Las órdenes se crean al asignar un ticket a un proveedor.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-[#E2E8F0]">
+          <div className="divide-y divide-neutral-100">
             {filtered.map((orden) => {
               const st = STATUS_CONFIG[orden.status] ?? STATUS_CONFIG.PENDIENTE
+              const Icon = st.icon
               return (
                 <div
                   key={orden.id}
-                  className="flex items-start justify-between px-6 py-4 hover:bg-[#F7F9FC] transition-colors cursor-pointer"
+                  className="flex items-start justify-between gap-4 px-6 py-4 hover:bg-neutral-100/40 transition-colors cursor-pointer"
                   onClick={() => openDetail(orden)}
                 >
                   <div className="flex items-start gap-4 min-w-0">
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                      style={{ background: st.bg }}
+                    <span
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${st.bg}`}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"
-                          stroke={st.color} strokeWidth="1.8" strokeLinecap="round" fill="none"/>
-                      </svg>
-                    </div>
+                      <Icon size={16} className={st.text} strokeWidth={2} />
+                    </span>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#0F1F34] mb-0.5">
+                      <p className="text-sm font-medium text-neutral-900 mb-0.5 truncate">
                         {orden.ticket.title}
                       </p>
-                      <p className="text-xs text-[#6B7A99]">
+                      <p className="text-xs text-neutral-400">
                         Ticket #{orden.ticket.folio} ·{' '}
                         {orden.ticket.reportedBy.name}
                         {orden.ticket.reportedBy.houseNumber &&
                           ` · Casa ${orden.ticket.reportedBy.houseNumber}`}
                       </p>
-                      <p className="text-xs text-[#4FA8E8] mt-0.5">
-                        Proveedor: {orden.provider.name}
+                      <p className="text-xs text-neutral-900/70 mt-0.5">
+                        {orden.provider.name}
                       </p>
                       {orden.cost && (
-                        <p className="text-xs text-[#1DB87E] mt-0.5">
-                          Costo: ${Number(orden.cost).toLocaleString('es-MX')}
+                        <p className="text-xs text-success mt-0.5 font-medium">
+                          ${Number(orden.cost).toLocaleString('es-MX')}
                         </p>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                    <p className="text-xs text-[#6B7A99] hidden sm:block">
+                    <p className="text-xs text-neutral-400 hidden sm:block">
                       {new Date(orden.createdAt).toLocaleDateString('es-MX', {
                         day: 'numeric', month: 'short',
                       })}
                     </p>
-                    <span
-                      className="text-xs font-medium px-2.5 py-1 rounded-full"
-                      style={{ color: st.color, background: st.bg }}
-                    >
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${st.text} ${st.bg}`}>
                       {st.label}
                     </span>
                   </div>
@@ -194,47 +215,41 @@ export default function OrdenesList({
       {/* Modal detalle */}
       {selected && (
         <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setSelected(null)}
         >
           <div
-            className="bg-white rounded-2xl border border-[#E2E8F0] w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-2xl border border-neutral-100 w-full max-w-lg shadow-black max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-start justify-between p-6 border-b border-[#E2E8F0]">
+            <div className="flex items-start justify-between p-6 border-b border-neutral-100">
               <div>
-                <p className="text-xs font-mono text-[#6B7A99] mb-1">
+                <p className="text-xs font-mono text-neutral-400 mb-1">
                   Ticket #{selected.ticket.folio}
                 </p>
-                <h3 className="font-medium text-[#0F1F34]">{selected.ticket.title}</h3>
-                <p className="text-xs text-[#4FA8E8] mt-1">
+                <h3 className="font-medium text-neutral-900">{selected.ticket.title}</h3>
+                <p className="text-xs text-neutral-400 mt-1">
                   {selected.provider.name}
                 </p>
               </div>
               <button
                 onClick={() => setSelected(null)}
-                className="text-[#6B7A99] hover:text-[#0F1F34] p-1"
+                className="text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg p-1.5 transition-colors"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
+                <X size={18} strokeWidth={2} />
               </button>
             </div>
 
             <div className="p-6 space-y-5">
               {/* Estado actual */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span
-                  className="text-xs font-medium px-2.5 py-1 rounded-full"
-                  style={{
-                    color:      STATUS_CONFIG[selected.status]?.color,
-                    background: STATUS_CONFIG[selected.status]?.bg,
-                  }}
+                  className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_CONFIG[selected.status]?.text} ${STATUS_CONFIG[selected.status]?.bg}`}
                 >
                   {STATUS_CONFIG[selected.status]?.label}
                 </span>
-                <span className="text-xs text-[#6B7A99]">
+                <span className="text-xs text-neutral-400">
                   Creada el{' '}
                   {new Date(selected.createdAt).toLocaleDateString('es-MX', {
                     day: 'numeric', month: 'long',
@@ -244,36 +259,38 @@ export default function OrdenesList({
 
               {/* Fotos evidencia */}
               <div>
-                <p className="text-xs text-[#6B7A99] mb-2">Evidencia fotográfica</p>
+                <p className="text-xs font-medium text-neutral-400 uppercase tracking-[0.04em] mb-2">
+                  Evidencia fotográfica
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   {/* Columna ANTES (Ticket original) */}
                   <div>
-                    <p className="text-xs text-[#6B7A99] mb-1.5">Antes</p>
+                    <p className="text-xs text-neutral-400 mb-1.5">Antes</p>
                     {selected.ticket.photoUrl ? (
                       <img
                         src={selected.ticket.photoUrl}
                         alt="Antes"
-                        className="w-full aspect-square object-cover rounded-xl border border-[#E2E8F0]"
+                        className="w-full aspect-square object-cover rounded-xl border border-neutral-100"
                       />
                     ) : (
-                      <div className="w-full aspect-square bg-[#F1F5F9] rounded-xl border border-[#E2E8F0] flex items-center justify-center">
-                        <p className="text-xs text-[#C5D5EE]">Sin foto</p>
+                      <div className="w-full aspect-square bg-neutral-100 rounded-xl border border-neutral-100 flex items-center justify-center">
+                        <ImageOff size={18} className="text-neutral-400" strokeWidth={1.5} />
                       </div>
                     )}
                   </div>
 
                   {/* Columna DESPUÉS (Orden finalizada) */}
                   <div>
-                    <p className="text-xs text-[#1DB87E] mb-1.5">Después</p>
+                    <p className="text-xs text-success mb-1.5">Después</p>
                     {selected.afterPhotoUrl ? (
                       <img
                         src={selected.afterPhotoUrl}
                         alt="Después"
-                        className="w-full aspect-square object-cover rounded-xl border border-[#9FE1CB]"
+                        className="w-full aspect-square object-cover rounded-xl border border-success/30"
                       />
                     ) : (
-                      <div className="w-full aspect-square bg-[#E6F9F1] rounded-xl border border-[#9FE1CB] flex items-center justify-center">
-                        <p className="text-xs text-[#9FE1CB]">Pendiente</p>
+                      <div className="w-full aspect-square bg-success/5 rounded-xl border border-success/20 flex items-center justify-center">
+                        <p className="text-xs text-success/60">Pendiente</p>
                       </div>
                     )}
                   </div>
@@ -284,7 +301,7 @@ export default function OrdenesList({
               {selected.status !== 'COMPLETADA' && selected.status !== 'CANCELADA' && (
                 <>
                   <div>
-                    <label className="text-xs text-[#6B7A99] mb-1.5 block">
+                    <label className="text-xs font-medium text-neutral-400 uppercase tracking-[0.04em] mb-1.5 block">
                       Costo real (MXN)
                     </label>
                     <input
@@ -292,17 +309,19 @@ export default function OrdenesList({
                       value={costInput}
                       onChange={(e) => setCostInput(e.target.value)}
                       placeholder="Ej. 1200"
-                      className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE]"
+                      className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors placeholder:text-neutral-400"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-[#6B7A99] mb-1.5 block">Notas</label>
+                    <label className="text-xs font-medium text-neutral-400 uppercase tracking-[0.04em] mb-1.5 block">
+                      Notas
+                    </label>
                     <textarea
                       value={notesInput}
                       onChange={(e) => setNotesInput(e.target.value)}
                       placeholder="Observaciones sobre el trabajo..."
                       rows={2}
-                      className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE] resize-none"
+                      className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors placeholder:text-neutral-400 resize-none"
                     />
                   </div>
                 </>
@@ -310,12 +329,12 @@ export default function OrdenesList({
 
               {/* Costo registrado si ya está cerrada */}
               {selected.cost && (
-                <div className="bg-[#E6F9F1] rounded-xl px-4 py-3">
-                  <p className="text-xs text-[#0D7A4E] font-medium">
+                <div className="bg-success/5 border border-success/20 rounded-xl px-4 py-3">
+                  <p className="text-xs text-success font-medium">
                     Costo registrado: ${Number(selected.cost).toLocaleString('es-MX')} MXN
                   </p>
                   {selected.closedAt && (
-                    <p className="text-xs text-[#0D7A4E] mt-0.5">
+                    <p className="text-xs text-success/70 mt-0.5">
                       Cerrada el{' '}
                       {new Date(selected.closedAt).toLocaleDateString('es-MX', {
                         day: 'numeric', month: 'long',
@@ -331,7 +350,7 @@ export default function OrdenesList({
                   <button
                     onClick={() => handleUpdateStatus('CANCELADA')}
                     disabled={loading}
-                    className="btn-ghost flex-1 py-3 text-sm justify-center text-[#E8503A] border-[#FACAC3] hover:bg-[#FEECEA]"
+                    className="btn-ghost flex-1 py-3 text-sm justify-center text-danger border-danger/20 hover:bg-danger/5 hover:border-danger/40 disabled:opacity-50"
                   >
                     Cancelar orden
                   </button>
@@ -340,7 +359,14 @@ export default function OrdenesList({
                     disabled={loading}
                     className="btn-primary flex-1 py-3 text-sm justify-center disabled:opacity-50"
                   >
-                    {loading ? 'Guardando...' : 'Marcar completada'}
+                    {loading ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" strokeWidth={2} />
+                        Guardando...
+                      </>
+                    ) : (
+                      'Marcar completada'
+                    )}
                   </button>
                 </div>
               )}

@@ -7,6 +7,10 @@
  * Existe para que el ADMIN controle la informacion financiera mensual del coto
  * dentro del flujo de administracion del SaaS.
  */
+
+// Ya se rediseño
+
+
 'use client'
 
 import { useState } from 'react'

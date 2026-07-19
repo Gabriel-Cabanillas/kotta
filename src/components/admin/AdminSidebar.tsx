@@ -7,6 +7,8 @@
  * Existe para dar estructura persistente al panel administrativo y sostener la
  * gestion central de usuarios, tickets, pagos, activos, ordenes y configuracion.
  */
+
+// Ya se rediseño
 'use client'
 
 import { usePathname } from 'next/navigation'

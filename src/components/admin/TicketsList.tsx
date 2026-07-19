@@ -7,10 +7,29 @@
  * Existe para que el ADMIN supervise incidencias y conecte tickets con ordenes
  * dentro de la operacion del condominio.
  */
+
+// Ya se rediseño
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  Droplet,
+  Zap,
+  Hammer,
+  Leaf,
+  Sparkles,
+  ShieldCheck,
+  Building2,
+  MoreHorizontal,
+  X,
+  ChevronRight,
+  User,
+  Tag,
+  Inbox,
+  CheckCircle2,
+  type LucideIcon,
+} from 'lucide-react'
 
 const STATUS_TABS = [
   { key: 'TODOS',       label: 'Todos' },
@@ -29,13 +48,15 @@ const STATUS_LABELS: Record<string, string> = {
   CERRADO:     'Cerrado',
 }
 
-const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
-  NUEVO:       { color: '#6B7A99', bg: '#F1F5F9' },
-  EN_REVISION: { color: '#4FA8E8', bg: '#E8F4FD' },
-  ASIGNADO:    { color: '#4FA8E8', bg: '#E8F4FD' },
-  EN_PROCESO:  { color: '#F5A623', bg: '#FEF3E2' },
-  RESUELTO:    { color: '#1DB87E', bg: '#E6F9F1' },
-  CERRADO:     { color: '#1DB87E', bg: '#E6F9F1' },
+// Punto de color por estado; la etiqueta usa el mismo tratamiento neutro
+// para todos los estados (patrón de "dot status" tipo Linear/Stripe).
+const STATUS_DOT: Record<string, string> = {
+  NUEVO:       'bg-red',
+  EN_REVISION: 'bg-yellow',
+  ASIGNADO:    'bg-neutral-400',
+  EN_PROCESO:  'bg-black',
+  RESUELTO:    'bg-green',
+  CERRADO:     'bg-neutral-400',
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -47,6 +68,17 @@ const CATEGORY_LABELS: Record<string, string> = {
   SEGURIDAD:      'Seguridad',
   INFRAESTRUCTURA:'Infraestructura',
   OTRO:           'Otro',
+}
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  PLOMERIA:        Droplet,
+  ELECTRICIDAD:    Zap,
+  HERRERIA:        Hammer,
+  JARDINERIA:      Leaf,
+  LIMPIEZA:        Sparkles,
+  SEGURIDAD:       ShieldCheck,
+  INFRAESTRUCTURA: Building2,
+  OTRO:            MoreHorizontal,
 }
 
 type Ticket = {
@@ -116,18 +148,18 @@ export default function TicketsList({
           <button
             key={tab.key}
             onClick={() => router.push(`/${coto}/admin/tickets?status=${tab.key}`)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 ${
               currentStatus === tab.key
-                ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
-                : 'bg-white text-[#4A5568] border-[#E2E8F0] hover:border-[#C5D5EE]'
+                ? 'bg-black text-white border-black'
+                : 'bg-white text-text-secondary border-border hover:border-black/25 hover:text-text-primary'
             }`}
           >
             {tab.label}
             <span
-              className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+              className={`text-[11px] font-mono px-1.5 py-0.5 rounded-full ${
                 currentStatus === tab.key
-                  ? 'bg-white/20 text-white'
-                  : 'bg-[#F1F5F9] text-[#6B7A99]'
+                  ? 'bg-white/15 text-white'
+                  : 'bg-neutral-100 text-text-muted'
               }`}
             >
               {getCount(tab.key)}
@@ -137,54 +169,65 @@ export default function TicketsList({
       </div>
 
       {/* Lista */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden">
+      <div className="bg-white rounded-2xl border border-border overflow-hidden">
         {tickets.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-[#6B7A99] text-sm">No hay tickets en esta categoría.</p>
+          <div className="py-20 flex flex-col items-center justify-center gap-3 text-center">
+            <div className="h-11 w-11 rounded-full bg-neutral-100 flex items-center justify-center text-text-muted">
+              <Inbox size={18} strokeWidth={1.5} />
+            </div>
+            <p className="text-text-muted text-sm">No hay tickets en esta categoría.</p>
           </div>
         ) : (
-          <div className="divide-y divide-[#E2E8F0]">
+          <div className="divide-y divide-border">
             {tickets.map((ticket) => {
-              const st = STATUS_COLORS[ticket.status] ?? STATUS_COLORS.NUEVO
+              const dot = STATUS_DOT[ticket.status] ?? STATUS_DOT.NUEVO
+              const CategoryIcon = CATEGORY_ICONS[ticket.category] ?? MoreHorizontal
               return (
                 <div
                   key={ticket.id}
-                  className="flex items-start justify-between px-6 py-4 hover:bg-[#F7F9FC] transition-colors cursor-pointer"
+                  className="group flex items-start gap-4 px-6 py-4 hover:bg-black/[0.02] transition-colors cursor-pointer"
                   onClick={() => setSelectedTicket(ticket)}
                 >
-                  <div className="flex items-start gap-4 min-w-0">
-                    <span className="text-xs font-mono text-[#6B7A99] flex-shrink-0 mt-1">
-                      #{ticket.folio}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#0F1F34] mb-0.5">
-                        {ticket.title}
-                      </p>
-                      <p className="text-xs text-[#6B7A99]">
-                        {ticket.reportedBy.name}
-                        {ticket.reportedBy.houseNumber && ` · Casa ${ticket.reportedBy.houseNumber}`}
-                        {' · '}
-                        {CATEGORY_LABELS[ticket.category]}
-                      </p>
-                      {ticket.workOrder?.provider && (
-                        <p className="text-xs text-[#4FA8E8] mt-1">
-                          Asignado a: {ticket.workOrder.provider.name}
-                        </p>
-                      )}
-                    </div>
+                  <div className="h-9 w-9 rounded-full bg-neutral-100 flex items-center justify-center text-text-secondary flex-shrink-0">
+                    <CategoryIcon size={16} strokeWidth={1.75} />
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                    <p className="text-xs text-[#6B7A99] hidden sm:block">
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-mono text-text-muted tracking-wide mb-0.5">
+                      #{ticket.folio}
+                    </p>
+                    <p className="text-sm font-medium text-text-primary truncate">
+                      {ticket.title}
+                    </p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      {ticket.reportedBy.name}
+                      {ticket.reportedBy.houseNumber && ` · Casa ${ticket.reportedBy.houseNumber}`}
+                      {' · '}
+                      {CATEGORY_LABELS[ticket.category]}
+                    </p>
+                    {ticket.workOrder?.provider && (
+                      <p className="flex items-center gap-1.5 text-xs text-text-secondary mt-1.5">
+                        <CheckCircle2 size={12} strokeWidth={2} className="text-green flex-shrink-0" />
+                        Asignado a {ticket.workOrder.provider.name}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-shrink-0 ml-2">
+                    <p className="text-xs text-text-muted hidden sm:block">
                       {new Date(ticket.createdAt).toLocaleDateString('es-MX', {
                         day: 'numeric', month: 'short',
                       })}
                     </p>
-                    <span
-                      className="text-xs font-medium px-2.5 py-1 rounded-full"
-                      style={{ color: st.color, background: st.bg }}
-                    >
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-neutral-100 text-neutral-800">
+                      <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${dot}`} />
                       {STATUS_LABELS[ticket.status]}
                     </span>
+                    <ChevronRight
+                      size={16}
+                      strokeWidth={2}
+                      className="hidden md:block text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-0.5 transition-all"
+                    />
                   </div>
                 </div>
               )
@@ -196,72 +239,87 @@ export default function TicketsList({
       {/* Modal detalle + asignación */}
       {selectedTicket && (
         <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedTicket(null)}
         >
           <div
-            className="bg-white rounded-2xl border border-[#E2E8F0] w-full max-w-lg shadow-xl"
+            className="bg-white rounded-3xl border border-border w-full max-w-lg shadow-black max-h-[90vh] overflow-y-auto animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-start justify-between p-6 border-b border-[#E2E8F0]">
+            <div className="flex items-start justify-between px-6 py-5 border-b border-border sticky top-0 bg-white">
               <div>
-                <p className="text-xs font-mono text-[#6B7A99] mb-1">
+                <p className="text-[11px] font-mono text-text-muted tracking-wide mb-1">
                   #{selectedTicket.folio}
                 </p>
-                <h3 className="font-medium text-[#0F1F34]">{selectedTicket.title}</h3>
+                <h3 className="text-lg font-medium text-text-primary leading-snug">
+                  {selectedTicket.title}
+                </h3>
               </div>
               <button
                 onClick={() => setSelectedTicket(null)}
-                className="text-[#6B7A99] hover:text-[#0F1F34] transition-colors p-1"
+                className="text-text-muted hover:text-text-primary hover:bg-black/[0.04] transition-colors p-2 -mr-2 -mt-1 rounded-full flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
+                <X size={18} strokeWidth={2} />
               </button>
             </div>
 
             {/* Body */}
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-5">
               <div>
-                <p className="text-xs text-[#6B7A99] mb-1">Descripción</p>
-                <p className="text-sm text-[#0F1F34]">{selectedTicket.description}</p>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted mb-2">
+                  Descripción
+                </p>
+                <p className="text-sm text-text-primary leading-relaxed bg-neutral-100/70 rounded-xl p-4">
+                  {selectedTicket.description}
+                </p>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-[#6B7A99] mb-1">Reportado por</p>
-                  <p className="text-sm text-[#0F1F34]">{selectedTicket.reportedBy.name}</p>
+                  <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-text-muted mb-1.5">
+                    <User size={12} strokeWidth={2} />
+                    Reportado por
+                  </p>
+                  <p className="text-sm text-text-primary">{selectedTicket.reportedBy.name}</p>
                   {selectedTicket.reportedBy.houseNumber && (
-                    <p className="text-xs text-[#6B7A99]">Casa {selectedTicket.reportedBy.houseNumber}</p>
+                    <p className="text-xs text-text-muted mt-0.5">Casa {selectedTicket.reportedBy.houseNumber}</p>
                   )}
                 </div>
                 <div>
-                  <p className="text-xs text-[#6B7A99] mb-1">Categoría</p>
-                  <p className="text-sm text-[#0F1F34]">{CATEGORY_LABELS[selectedTicket.category]}</p>
+                  <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-text-muted mb-1.5">
+                    <Tag size={12} strokeWidth={2} />
+                    Categoría
+                  </p>
+                  <p className="text-sm text-text-primary">{CATEGORY_LABELS[selectedTicket.category]}</p>
                 </div>
               </div>
 
               {/* Foto */}
               {selectedTicket.photoUrl && (
                 <div>
-                  <p className="text-xs text-[#6B7A99] mb-2">Foto del reporte</p>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted mb-2">
+                    Foto del reporte
+                  </p>
                   <img
                     src={selectedTicket.photoUrl}
                     alt="Foto del reporte"
-                    className="w-full rounded-xl border border-[#E2E8F0] object-cover max-h-48"
+                    className="w-full rounded-xl border border-border object-cover max-h-48"
                   />
                 </div>
               )}
 
               {/* Asignar proveedor */}
               {!selectedTicket.workOrder && proveedores.length > 0 && (
-                <div>
-                  <p className="text-xs text-[#6B7A99] mb-2">Asignar a proveedor</p>
+                <div className="bg-neutral-100/70 rounded-xl p-4">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted mb-2.5">
+                    Asignar a proveedor
+                  </p>
                   <div className="flex gap-2">
                     <select
                       value={selectedProveedor}
                       onChange={(e) => setSelectedProveedor(e.target.value)}
-                      className="flex-1 text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                      className="flex-1 text-sm border border-border rounded-lg px-3 py-2.5 text-text-primary bg-white focus:outline-none focus:border-black transition-colors"
                     >
                       <option value="">Seleccionar proveedor...</option>
                       {proveedores.map((p) => (
@@ -271,7 +329,7 @@ export default function TicketsList({
                     <button
                       onClick={handleAssign}
                       disabled={!selectedProveedor || assigning}
-                      className="btn-primary py-2.5 px-4 text-sm disabled:opacity-50"
+                      className="btn-primary py-2.5 px-4 text-sm disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
                     >
                       {assigning ? 'Asignando...' : 'Asignar'}
                     </button>
@@ -280,8 +338,9 @@ export default function TicketsList({
               )}
 
               {selectedTicket.workOrder?.provider && (
-                <div className="bg-[#E8F4FD] rounded-xl px-4 py-3">
-                  <p className="text-xs text-[#185FA5] font-medium">
+                <div className="flex items-center gap-2 bg-green/10 rounded-xl px-4 py-3">
+                  <CheckCircle2 size={16} strokeWidth={2} className="text-green flex-shrink-0" />
+                  <p className="text-xs font-medium text-neutral-900">
                     Asignado a {selectedTicket.workOrder.provider.name}
                   </p>
                 </div>

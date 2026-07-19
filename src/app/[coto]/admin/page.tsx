@@ -7,6 +7,8 @@
  * Existe para documentar y ejecutar la entrada multi-rol y multi-coto del SaaS,
  * validando sesion, rol ADMIN y pertenencia al coto antes de consultar datos.
  */
+
+// Ya se rediseño
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'

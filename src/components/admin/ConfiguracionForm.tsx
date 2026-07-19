@@ -11,6 +11,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Building2, Link2, CreditCard, LayoutGrid, ShieldCheck, Users, Truck, KeyRound, Loader2, Check, } from 'lucide-react'
 
 type Org = {
   id: string
@@ -18,6 +19,13 @@ type Org = {
   slug: string
   isActive: boolean
 }
+
+const ROLE_ACCESS = [
+  { rol: 'Administrador', path: 'admin', icon: ShieldCheck },
+  { rol: 'Vecino', path: 'vecino', icon: Users },
+  { rol: 'Proveedor', path: 'proveedor', icon: Truck },
+  { rol: 'Guardia', path: 'guardia', icon: KeyRound },
+] as const
 
 export default function ConfiguracionForm({ org }: { org: Org }) {
   const router  = useRouter()
@@ -43,119 +51,147 @@ export default function ConfiguracionForm({ org }: { org: Org }) {
   }
 
   return (
-    <div className="max-w-xl space-y-5">
+    <div className="max-w-xl space-y-6">
+
+      {/* Encabezado */}
+      <div>
+        <p className="text-xs font-medium uppercase tracking-[0.08em] text-neutral-400 mb-1">
+          Configuración
+        </p>
+        <h1 className="text-2xl font-medium text-neutral-900">
+          {org.name}
+        </h1>
+      </div>
 
       {/* Datos generales */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6">
-        <h2 className="font-medium text-[#0F1F34] mb-5">Datos del condominio</h2>
+      <section className="bg-white rounded-2xl border border-neutral-100 p-7 md:p-8">
+        <div className="flex items-center gap-2.5 mb-6">
+          <div className="w-8 h-8 rounded-lg bg-neutral-900 flex items-center justify-center shrink-0">
+            <Building2 className="w-4 h-4 text-white" strokeWidth={2} />
+          </div>
+          <h2 className="text-[0.9375rem] font-medium text-neutral-900">
+            Datos del condominio
+          </h2>
+        </div>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
-            <label className="text-xs text-[#6B7A99] mb-1.5 block">
+            <label htmlFor="condo-name" className="text-xs font-medium text-neutral-400 mb-1.5 block">
               Nombre del condominio
             </label>
             <input
+              id="condo-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+              className="w-full text-sm text-neutral-900 bg-white border border-neutral-100 rounded-xl
+                         px-3.5 py-2.5 transition-colors duration-150
+                         focus:outline-none focus:border-black"
             />
           </div>
 
           <div>
-            <label className="text-xs text-[#6B7A99] mb-1.5 block">
+            <span className="text-xs font-medium text-neutral-400 mb-1.5 block">
               URL del sistema
-            </label>
-            <div className="flex items-center gap-2 bg-[#F7F9FC] border border-[#E2E8F0] rounded-xl px-3 py-2.5">
-              <span className="text-xs text-[#6B7A99]">kotta.com.mx/</span>
-              <span className="text-sm text-[#0F1F34] font-mono">{org.slug}</span>
+            </span>
+            <div className="flex items-center gap-2 bg-black/[0.02] border border-neutral-100 rounded-xl px-3.5 py-2.5">
+              <Link2 className="w-3.5 h-3.5 text-neutral-400 shrink-0" strokeWidth={2} />
+              <span className="text-xs text-neutral-400">kotta.com.mx/</span>
+              <span className="text-sm text-neutral-900 font-mono">{org.slug}</span>
             </div>
-            <p className="text-xs text-[#6B7A99] mt-1.5">
+            <p className="text-xs text-neutral-400 mt-1.5">
               El slug no se puede modificar una vez creado.
             </p>
           </div>
 
           <div>
-            <label className="text-xs text-[#6B7A99] mb-1.5 block">Estado</label>
-            <div className="flex items-center gap-2">
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  org.isActive ? 'bg-[#1DB87E]' : 'bg-[#E8503A]'
-                }`}
-              />
-              <span className="text-sm text-[#0F1F34]">
+            <span className="text-xs font-medium text-neutral-400 mb-1.5 block">Estado</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-100/60">
+              <span className={`w-1.5 h-1.5 rounded-full ${org.isActive ? 'bg-green' : 'bg-red'}`} />
+              <span className="text-xs font-medium text-neutral-900">
                 {org.isActive ? 'Activo' : 'Inactivo'}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mt-6">
+        <div className="flex items-center gap-3 mt-7 pt-6 border-t border-neutral-100">
           <button
             onClick={handleSave}
             disabled={loading || name === org.name}
-            className="btn-primary py-2.5 px-6 text-sm disabled:opacity-50"
+            className="btn-primary py-2.5 px-6 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
           >
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2.5} />}
             {loading ? 'Guardando...' : 'Guardar cambios'}
           </button>
+
           {saved && (
-            <span className="text-xs text-[#1DB87E] font-medium">
-              ✓ Cambios guardados
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green animate-fade-in">
+              <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+              Cambios guardados
             </span>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Info del plan */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6">
-        <h2 className="font-medium text-[#0F1F34] mb-4">Plan activo</h2>
-        <div className="flex items-center justify-between p-4 bg-[#E8F0F9] rounded-xl border border-[#C5D5EE]">
+      <section className="bg-white rounded-2xl border border-neutral-100 p-7 md:p-8">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="w-8 h-8 rounded-lg bg-neutral-900 flex items-center justify-center shrink-0">
+            <CreditCard className="w-4 h-4 text-white" strokeWidth={2} />
+          </div>
+          <h2 className="text-[0.9375rem] font-medium text-neutral-900">Plan activo</h2>
+        </div>
+
+        <div className="flex items-center justify-between p-5 bg-black rounded-2xl">
           <div>
-            <p className="text-sm font-medium text-[#1E3A5F]">Plan único KOTTA</p>
-            <p className="text-xs text-[#4A5568] mt-0.5">Todos los módulos incluidos</p>
+            <p className="text-sm font-medium text-white">Plan único KOTTA</p>
+            <p className="text-xs text-white/60 mt-0.5">Todos los módulos incluidos</p>
           </div>
           <div className="text-right">
-            <p className="font-display text-xl text-[#1E3A5F]">$1,500</p>
-            <p className="text-xs text-[#6B7A99]">MXN / mes</p>
+            <p className="text-xl font-medium text-white">$1,500</p>
+            <p className="text-xs text-white/60">MXN / mes</p>
           </div>
         </div>
-        <p className="text-xs text-[#6B7A99] mt-3">
+
+        <p className="text-xs text-neutral-400 mt-4">
           Para cambios en tu plan o facturación contacta a{' '}
-          <a href="mailto:hola@kotta.com.mx" className="text-[#4FA8E8] hover:underline">
+          <a
+            href="mailto:hola@kotta.com.mx"
+            className="text-neutral-900 font-medium hover:text-red transition-colors duration-150"
+          >
             hola@kotta.com.mx
           </a>
         </p>
-      </div>
+      </section>
 
       {/* Accesos rápidos */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6">
-        <h2 className="font-medium text-[#0F1F34] mb-4">URLs del sistema</h2>
+      <section className="bg-white rounded-2xl border border-neutral-100 p-7 md:p-8">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="w-8 h-8 rounded-lg bg-neutral-900 flex items-center justify-center shrink-0">
+            <LayoutGrid className="w-4 h-4 text-white" strokeWidth={2} />
+          </div>
+          <h2 className="text-[0.9375rem] font-medium text-neutral-900">URLs del sistema</h2>
+        </div>
+
         <div className="space-y-2">
-          {[
-            { rol: 'Administrador', path: 'admin',     color: '#1E3A5F', bg: '#E8F0F9' },
-            { rol: 'Vecino',        path: 'vecino',    color: '#4FA8E8', bg: '#E8F4FD' },
-            { rol: 'Proveedor',     path: 'proveedor', color: '#1DB87E', bg: '#E6F9F1' },
-            { rol: 'Guardia',       path: 'guardia',   color: '#6B7A99', bg: '#F1F5F9' },
-          ].map((item) => (
+          {ROLE_ACCESS.map(({ rol, path, icon: Icon }) => (
             <div
-              key={item.path}
-              className="flex items-center justify-between p-3 rounded-xl border border-[#E2E8F0] bg-[#F7F9FC]"
+              key={path}
+              className="flex items-center justify-between p-3.5 rounded-xl border border-neutral-100
+                         transition-colors duration-150 hover:bg-black/[0.02]"
             >
               <div className="flex items-center gap-2.5">
-                <span
-                  className="text-xs font-medium px-2 py-0.5 rounded-md"
-                  style={{ color: item.color, background: item.bg }}
-                >
-                  {item.rol}
-                </span>
+                <Icon className="w-3.5 h-3.5 text-neutral-400" strokeWidth={2} />
+                <span className="text-xs font-medium text-neutral-900">{rol}</span>
               </div>
-              <span className="text-xs font-mono text-[#6B7A99]">
-                /{org.slug}/{item.path}
+              <span className="text-xs font-mono text-neutral-400">
+                /{org.slug}/{path}
               </span>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
     </div>
   )
