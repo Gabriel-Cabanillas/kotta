@@ -9,10 +9,21 @@ export default async function VecinoReservas({ params }: { params: { coto: strin
   if (user.role !== 'VECINO') redirect('/dashboard')
 
   const now = new Date()
-  const [amenidades, misReservas] = await Promise.all([
+  const [amenidades, misReservas, ocupadas] = await Promise.all([
     prisma.amenity.findMany({ where: { orgId: user.orgId!, status: 'ACTIVA' }, orderBy: { name: 'asc' } }),
     prisma.amenityReservation.findMany({
       where: { userId: user.id, date: { gte: now } }, orderBy: { date: 'asc' }, include: { amenity: true },
+    }),
+    // Ocupación de TODAS las amenidades del coto (no solo las del vecino actual),
+    // para poder marcar fechas/horarios ya tomados. Solo campos necesarios,
+    // sin exponer qué vecino hizo cada reserva.
+    prisma.amenityReservation.findMany({
+      where: {
+        amenity: { orgId: user.orgId! },
+        date: { gte: now },
+        status: { in: ['PENDIENTE', 'CONFIRMADA'] },
+      },
+      select: { amenityId: true, date: true, startTime: true, endTime: true },
     }),
   ])
 
@@ -28,7 +39,12 @@ export default async function VecinoReservas({ params }: { params: { coto: strin
         <h1 className="font-display text-2xl text-[#0F1F34] mb-1">Reservas</h1>
         <p className="text-sm text-[#6B7A99]">Áreas comunes disponibles para reservar</p>
       </div>
-      <ReservasForm amenidades={amenidadesSerializadas} misReservas={misReservas as any} userId={user.id} />
+      <ReservasForm
+        amenidades={amenidadesSerializadas}
+        misReservas={misReservas as any}
+        ocupadas={ocupadas}
+        userId={user.id}
+      />
     </div>
   )
 }

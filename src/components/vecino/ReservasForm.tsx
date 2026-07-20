@@ -39,6 +39,13 @@ type Reserva = {
   amenity: { name: string }
 }
 
+type Ocupacion = {
+  amenityId: string
+  date: Date
+  startTime: string
+  endTime: string
+}
+
 const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
   PENDIENTE:  { color: '#F5A623', bg: '#FEF3E2', label: 'Pendiente'  },
   CONFIRMADA: { color: '#1DB87E', bg: '#E6F9F1', label: 'Confirmada' },
@@ -56,14 +63,28 @@ function formatoHora(totalMin: number) {
   const m = (totalMin % 60).toString().padStart(2, '0')
   return `${h}:${m}`
 }
+function mismaFecha(a: Date, dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const fa = new Date(a)
+  return fa.getFullYear() === y && fa.getMonth() === m - 1 && fa.getDate() === d
+}
+function aYYYYMMDD(d: Date) {
+  const fd = new Date(d)
+  const y = fd.getFullYear()
+  const m = String(fd.getMonth() + 1).padStart(2, '0')
+  const dd = String(fd.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
 
 export default function ReservasForm({
   amenidades,
   misReservas,
+  ocupadas = [],
   userId,
 }: {
   amenidades: Amenidad[]
   misReservas: Reserva[]
+  ocupadas?: Ocupacion[]
   userId: string
 }) {
   const router  = useRouter()
@@ -82,19 +103,61 @@ export default function ReservasForm({
     [amenidades, form.amenityId],
   )
 
-  // Horas de inicio válidas: desde el inicio de la amenidad hasta que quepa
-  // un slot completo de `durationMinutes` antes del cierre.
-  const horasDisponibles = useMemo(() => {
-    if (!amenidadSeleccionada) return []
-    const inicio   = minutosDesde(amenidadSeleccionada.startTime)
-    const fin       = minutosDesde(amenidadSeleccionada.endTime)
-    const duracion = amenidadSeleccionada.durationMinutes
+  const ocupadasAmenidad = useMemo(
+    () => ocupadas.filter((o) => o.amenityId === form.amenityId),
+    [ocupadas, form.amenityId],
+  )
+
+  const ocupadasDelDia = useMemo(
+    () => (form.date ? ocupadasAmenidad.filter((o) => mismaFecha(o.date, form.date)) : []),
+    [ocupadasAmenidad, form.date],
+  )
+
+  // Genera los slots posibles de la amenidad y descarta los que se traslapan
+  // con una reserva ya activa (PENDIENTE o CONFIRMADA) ese mismo día.
+  const generarSlots = (amenidad: Amenidad, ocupadasDia: Ocupacion[]) => {
+    const inicio   = minutosDesde(amenidad.startTime)
+    const fin       = minutosDesde(amenidad.endTime)
+    const duracion = amenidad.durationMinutes
     const opciones: string[] = []
     for (let t = inicio; t + duracion <= fin; t += duracion) {
-      opciones.push(formatoHora(t))
+      const tFin = t + duracion
+      const ocupado = ocupadasDia.some((o) => {
+        const oInicio = minutosDesde(o.startTime)
+        const oFin     = minutosDesde(o.endTime)
+        return t < oFin && tFin > oInicio
+      })
+      if (!ocupado) opciones.push(formatoHora(t))
     }
     return opciones
-  }, [amenidadSeleccionada])
+  }
+
+  // Horas de inicio válidas: dentro del horario de la amenidad y sin traslape
+  // con otra reserva ya activa ese día.
+  const horasDisponibles = useMemo(() => {
+    if (!amenidadSeleccionada) return []
+    return generarSlots(amenidadSeleccionada, ocupadasDelDia)
+  }, [amenidadSeleccionada, ocupadasDelDia])
+
+  const diaSinCupo = Boolean(form.date && amenidadSeleccionada && horasDisponibles.length === 0)
+
+  // Próximas fechas (60 días) en las que la amenidad ya no tiene ningún
+  // horario libre, para avisarle al vecino antes de que intente elegirlas.
+  const fechasSinCupo = useMemo(() => {
+    if (!amenidadSeleccionada) return []
+    const resultado: string[] = []
+    const hoy = new Date()
+    for (let i = 0; i < 60 && resultado.length < 6; i++) {
+      const dia = new Date(hoy)
+      dia.setDate(hoy.getDate() + i)
+      if (!amenidadSeleccionada.weekDays.includes(dia.getDay())) continue
+      const dateStr = aYYYYMMDD(dia)
+      const ocupadasEseDia = ocupadasAmenidad.filter((o) => mismaFecha(o.date, dateStr))
+      const libres = generarSlots(amenidadSeleccionada, ocupadasEseDia)
+      if (libres.length === 0) resultado.push(dateStr)
+    }
+    return resultado
+  }, [amenidadSeleccionada, ocupadasAmenidad])
 
   const horaFinCalculada = useMemo(() => {
     if (!amenidadSeleccionada || !form.startTime) return ''
@@ -119,6 +182,10 @@ export default function ReservasForm({
     if (!form.amenityId || !form.date || !form.startTime || !horaFinCalculada) return
     if (diaInvalido) {
       setError('La amenidad no está disponible ese día')
+      return
+    }
+    if (diaSinCupo) {
+      setError('Ese día ya no tiene horarios disponibles')
       return
     }
     setLoading(true)
@@ -304,13 +371,34 @@ export default function ReservasForm({
                   type="date"
                   value={form.date}
                   min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, date: e.target.value, startTime: '' }))}
                   className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
                 />
                 {diaInvalido && (
                   <p className="text-xs text-[#E8503A] mt-1.5">
                     Esta amenidad no está disponible ese día. Días habilitados:{' '}
                     {amenidadSeleccionada.weekDays.map((d) => DIAS_LABEL[d]).join(', ')}
+                  </p>
+                )}
+                {!diaInvalido && diaSinCupo && (
+                  <p className="text-xs text-[#E8503A] mt-1.5">
+                    Ese día ya no tiene horarios disponibles, elige otra fecha.
+                  </p>
+                )}
+                {!diaInvalido && !diaSinCupo && ocupadasDelDia.length > 0 && (
+                  <p className="text-xs text-[#6B7A99] mt-1.5">
+                    Horarios ya ocupados ese día:{' '}
+                    {ocupadasDelDia.map((o) => `${o.startTime}–${o.endTime}`).join(', ')}
+                  </p>
+                )}
+                {fechasSinCupo.length > 0 && (
+                  <p className="text-xs text-[#6B7A99] mt-1.5">
+                    Próximas fechas sin cupo:{' '}
+                    {fechasSinCupo.map((f, i) => {
+                      const [y, m, d] = f.split('-').map(Number)
+                      const label = new Date(y, m - 1, d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+                      return i === fechasSinCupo.length - 1 ? label : `${label}, `
+                    })}
                   </p>
                 )}
               </div>
@@ -320,9 +408,12 @@ export default function ReservasForm({
                 <select
                   value={form.startTime}
                   onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
-                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                  disabled={!form.date || diaInvalido || diaSinCupo}
+                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] disabled:bg-[#F7F9FC] disabled:text-[#C5D5EE]"
                 >
-                  <option value="">Seleccionar horario...</option>
+                  <option value="">
+                    {!form.date ? 'Elige una fecha primero...' : 'Seleccionar horario...'}
+                  </option>
                   {horasDisponibles.map((h) => (
                     <option key={h} value={h}>
                       {h} – {formatoHora(minutosDesde(h) + amenidadSeleccionada.durationMinutes)}
@@ -369,7 +460,7 @@ export default function ReservasForm({
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!form.date || !form.startTime || diaInvalido || loading}
+                disabled={!form.date || !form.startTime || diaInvalido || diaSinCupo || loading}
                 className="btn-primary flex-1 py-3 text-sm justify-center disabled:opacity-50"
               >
                 {loading ? 'Guardando...' : 'Confirmar reserva'}
