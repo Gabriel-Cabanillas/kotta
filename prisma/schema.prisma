@@ -90,6 +90,11 @@ enum ReservationStatus {
   CONFIRMADA
   CANCELADA
 }
+enum AmenityStatus {
+  ACTIVA
+  INACTIVA
+  MANTENIMIENTO
+}
 
 // ─── Organization ────────────────────────────────────────────
 
@@ -272,15 +277,30 @@ model Amenity {
   id          String   @id @default(cuid())
   name        String
   description String?
-  capacity    Int?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  imageUrl    String?
+
+  capacity        Int?
+  durationMinutes Int    @default(60)
+
+  startTime String @default("08:00")
+  endTime   String @default("22:00")
+  weekDays  Int[]  @default([0, 1, 2, 3, 4, 5, 6])
+
+  requiresApproval Boolean  @default(false)
+  extraCost        Decimal? @db.Decimal(10, 2)
+
+  rules  String?
+  status AmenityStatus @default(ACTIVA)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   orgId String
   org   Organization @relation(fields: [orgId], references: [id])
 
   reservations AmenityReservation[]
 
+  @@index([orgId, status])
   @@map("amenities")
 }
 

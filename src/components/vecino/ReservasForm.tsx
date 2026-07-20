@@ -2,21 +2,32 @@
 
 /**
  * Interfaz de reservas para que el vecino consulte, cree y cancele reservas de amenidades.
- * Contiene el listado de reservas proximas, el modal de nueva reserva y las acciones de guardado.
+ * Contiene el listado de reservas proximas, el catalogo de amenidades con su horario,
+ * dias disponibles, aprobacion y costo, y el modal de nueva reserva con horarios
+ * validos calculados a partir de la duracion configurada por el admin.
  * Se relaciona con src/app/[coto]/vecino/reservas/page.tsx,
  * /api/reservas/crear y /api/reservas/cancelar.
  * Existe dentro de Kotta para administrar el uso de amenidades compartidas
  * desde el panel residencial del vecino.
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 
 type Amenidad = {
   id: string
   name: string
   description: string | null
+  imageUrl: string | null
   capacity: number | null
+  durationMinutes: number
+  startTime: string
+  endTime: string
+  weekDays: number[]
+  requiresApproval: boolean
+  extraCost: number | null
+  rules: string | null
+  status: string
 }
 
 type Reserva = {
@@ -34,6 +45,18 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }
   CANCELADA:  { color: '#E8503A', bg: '#FEECEA', label: 'Cancelada'  },
 }
 
+const DIAS_LABEL = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+
+function minutosDesde(hhmm: string) {
+  const [h, m] = hhmm.split(':').map(Number)
+  return h * 60 + m
+}
+function formatoHora(totalMin: number) {
+  const h = Math.floor(totalMin / 60).toString().padStart(2, '0')
+  const m = (totalMin % 60).toString().padStart(2, '0')
+  return `${h}:${m}`
+}
+
 export default function ReservasForm({
   amenidades,
   misReservas,
@@ -44,27 +67,81 @@ export default function ReservasForm({
   userId: string
 }) {
   const router  = useRouter()
-  const [loading, setLoading]   = useState(false)
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState({
     amenityId: '',
     date:      '',
-    startTime: '09:00',
-    endTime:   '11:00',
+    startTime: '',
     notes:     '',
   })
 
+  const amenidadSeleccionada = useMemo(
+    () => amenidades.find((a) => a.id === form.amenityId) ?? null,
+    [amenidades, form.amenityId],
+  )
+
+  // Horas de inicio válidas: desde el inicio de la amenidad hasta que quepa
+  // un slot completo de `durationMinutes` antes del cierre.
+  const horasDisponibles = useMemo(() => {
+    if (!amenidadSeleccionada) return []
+    const inicio   = minutosDesde(amenidadSeleccionada.startTime)
+    const fin       = minutosDesde(amenidadSeleccionada.endTime)
+    const duracion = amenidadSeleccionada.durationMinutes
+    const opciones: string[] = []
+    for (let t = inicio; t + duracion <= fin; t += duracion) {
+      opciones.push(formatoHora(t))
+    }
+    return opciones
+  }, [amenidadSeleccionada])
+
+  const horaFinCalculada = useMemo(() => {
+    if (!amenidadSeleccionada || !form.startTime) return ''
+    return formatoHora(minutosDesde(form.startTime) + amenidadSeleccionada.durationMinutes)
+  }, [amenidadSeleccionada, form.startTime])
+
+  // Valida que la fecha elegida caiga en un día habilitado por la amenidad
+  const diaInvalido = useMemo(() => {
+    if (!amenidadSeleccionada || !form.date) return false
+    const [y, m, d] = form.date.split('-').map(Number)
+    const diaSemana = new Date(y, m - 1, d).getDay()
+    return !amenidadSeleccionada.weekDays.includes(diaSemana)
+  }, [amenidadSeleccionada, form.date])
+
+  const abrirModalPara = (amenityId: string) => {
+    setForm({ amenityId, date: '', startTime: '', notes: '' })
+    setError(null)
+    setShowModal(true)
+  }
+
   const handleSubmit = async () => {
-    if (!form.amenityId || !form.date) return
+    if (!form.amenityId || !form.date || !form.startTime || !horaFinCalculada) return
+    if (diaInvalido) {
+      setError('La amenidad no está disponible ese día')
+      return
+    }
     setLoading(true)
+    setError(null)
     try {
-      await fetch('/api/reservas/crear', {
+      const res = await fetch('/api/reservas/crear', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, userId }),
+        body: JSON.stringify({
+          amenityId: form.amenityId,
+          date: form.date,
+          startTime: form.startTime,
+          endTime: horaFinCalculada,
+          notes: form.notes,
+          userId,
+        }),
       })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'No se pudo crear la reserva')
+        return
+      }
       setShowModal(false)
-      setForm({ amenityId: '', date: '', startTime: '09:00', endTime: '11:00', notes: '' })
       router.refresh()
     } finally {
       setLoading(false)
@@ -87,44 +164,20 @@ export default function ReservasForm({
       <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0]">
           <h2 className="font-medium text-[#0F1F34] text-sm">Mis reservas próximas</h2>
-          {amenidades.length > 0 && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="btn-primary text-sm py-2 px-4"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-              </svg>
-              Nueva reserva
-            </button>
-          )}
         </div>
 
         {misReservas.length === 0 ? (
           <div className="py-12 text-center">
             <p className="text-[#6B7A99] text-sm">No tienes reservas próximas.</p>
-            {amenidades.length > 0 && (
-              <button
-                onClick={() => setShowModal(true)}
-                className="mt-2 text-sm text-[#4FA8E8] hover:underline"
-              >
-                Hacer una reserva →
-              </button>
-            )}
           </div>
         ) : (
           <div className="divide-y divide-[#E2E8F0]">
             {misReservas.map((reserva) => {
               const st = STATUS_CONFIG[reserva.status] ?? STATUS_CONFIG.PENDIENTE
               return (
-                <div
-                  key={reserva.id}
-                  className="flex items-center justify-between px-6 py-4"
-                >
+                <div key={reserva.id} className="flex items-center justify-between px-6 py-4">
                   <div>
-                    <p className="text-sm font-medium text-[#0F1F34]">
-                      {reserva.amenity.name}
-                    </p>
+                    <p className="text-sm font-medium text-[#0F1F34]">{reserva.amenity.name}</p>
                     <p className="text-xs text-[#6B7A99] mt-0.5">
                       {new Date(reserva.date).toLocaleDateString('es-MX', {
                         weekday: 'long', day: 'numeric', month: 'long',
@@ -133,17 +186,11 @@ export default function ReservasForm({
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span
-                      className="text-xs font-medium px-2.5 py-1 rounded-full"
-                      style={{ color: st.color, background: st.bg }}
-                    >
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full" style={{ color: st.color, background: st.bg }}>
                       {st.label}
                     </span>
                     {reserva.status !== 'CANCELADA' && (
-                      <button
-                        onClick={() => handleCancelar(reserva.id)}
-                        className="text-xs text-[#E8503A] hover:underline"
-                      >
+                      <button onClick={() => handleCancelar(reserva.id)} className="text-xs text-[#E8503A] hover:underline">
                         Cancelar
                       </button>
                     )}
@@ -158,49 +205,68 @@ export default function ReservasForm({
       {/* Amenidades disponibles */}
       {amenidades.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#E2E8F0] py-12 text-center">
-          <p className="text-[#6B7A99] text-sm">
-            El administrador no ha configurado amenidades aún.
-          </p>
+          <p className="text-[#6B7A99] text-sm">El administrador no ha configurado amenidades aún.</p>
         </div>
       ) : (
         <div>
-          <h2 className="font-medium text-[#0F1F34] text-sm mb-3">
-            Áreas disponibles
-          </h2>
+          <h2 className="font-medium text-[#0F1F34] text-sm mb-3">Áreas disponibles</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             {amenidades.map((amenidad) => (
-              <div
-                key={amenidad.id}
-                className="bg-white rounded-2xl border border-[#E2E8F0] p-5 hover:border-[#C5D5EE] hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#FEF3E2] flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <rect x="3" y="4" width="18" height="18" rx="2"
-                        stroke="#F5A623" strokeWidth="1.8" fill="none"/>
-                      <path d="M3 9h18M8 2v4M16 2v4"
-                        stroke="#F5A623" strokeWidth="1.8" strokeLinecap="round"/>
+              <div key={amenidad.id} className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden hover:border-[#C5D5EE] hover:shadow-sm transition-all">
+                {amenidad.imageUrl ? (
+                  <img src={amenidad.imageUrl} alt={amenidad.name} className="w-full aspect-video object-cover" />
+                ) : (
+                  <div className="w-full aspect-video bg-[#FEF3E2] flex items-center justify-center">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="4" width="18" height="18" rx="2" stroke="#F5A623" strokeWidth="1.8" fill="none"/>
+                      <path d="M3 9h18M8 2v4M16 2v4" stroke="#F5A623" strokeWidth="1.8" strokeLinecap="round"/>
                     </svg>
                   </div>
-                  {amenidad.capacity && (
-                    <span className="text-xs text-[#6B7A99] bg-[#F7F9FC] px-2 py-1 rounded-lg border border-[#E2E8F0]">
-                      Hasta {amenidad.capacity} personas
-                    </span>
-                  )}
-                </div>
-                <h3 className="font-medium text-[#0F1F34] mb-1">{amenidad.name}</h3>
-                {amenidad.description && (
-                  <p className="text-xs text-[#6B7A99] mb-3">{amenidad.description}</p>
                 )}
-                <button
-                  onClick={() => {
-                    setForm((f) => ({ ...f, amenityId: amenidad.id }))
-                    setShowModal(true)
-                  }}
-                  className="text-sm text-[#4FA8E8] font-medium hover:underline"
-                >
-                  Reservar →
-                </button>
+
+                <div className="p-5">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-medium text-[#0F1F34]">{amenidad.name}</h3>
+                    {amenidad.capacity && (
+                      <span className="text-xs text-[#6B7A99] bg-[#F7F9FC] px-2 py-1 rounded-lg border border-[#E2E8F0] flex-shrink-0 ml-2">
+                        Hasta {amenidad.capacity}
+                      </span>
+                    )}
+                  </div>
+
+                  {amenidad.description && (
+                    <p className="text-xs text-[#6B7A99] mb-3">{amenidad.description}</p>
+                  )}
+
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {DIAS_LABEL.map((label, i) => (
+                      <span
+                        key={i}
+                        className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                          amenidad.weekDays.includes(i) ? 'bg-[#E8F4FD] text-[#185FA5]' : 'text-[#C5D5EE]'
+                        }`}
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+
+                  <p className="text-xs text-[#6B7A99] mb-1">
+                    {amenidad.startTime} – {amenidad.endTime} · sesiones de {amenidad.durationMinutes} min
+                  </p>
+                  <p className="text-xs text-[#6B7A99] mb-3">
+                    {amenidad.requiresApproval ? 'Requiere aprobación del administrador' : 'Confirmación automática'}
+                    {' · '}
+                    {amenidad.extraCost ? `$${amenidad.extraCost.toLocaleString('es-MX')} MXN` : 'Incluida en tu cuota'}
+                  </p>
+
+                  <button
+                    onClick={() => abrirModalPara(amenidad.id)}
+                    className="text-sm text-[#4FA8E8] font-medium hover:underline"
+                  >
+                    Reservar →
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -208,21 +274,17 @@ export default function ReservasForm({
       )}
 
       {/* Modal nueva reserva */}
-      {showModal && (
-        <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="bg-white rounded-2xl border border-[#E2E8F0] w-full max-w-md shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+      {showModal && amenidadSeleccionada && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
-              <h3 className="font-medium text-[#0F1F34]">Nueva reserva</h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-[#6B7A99] hover:text-[#0F1F34] p-1"
-              >
+              <div>
+                <h3 className="font-medium text-[#0F1F34]">Reservar {amenidadSeleccionada.name}</h3>
+                <p className="text-xs text-[#6B7A99] mt-0.5">
+                  {amenidadSeleccionada.startTime}–{amenidadSeleccionada.endTime} · sesiones de {amenidadSeleccionada.durationMinutes} min
+                </p>
+              </div>
+              <button onClick={() => setShowModal(false)} className="text-[#6B7A99] hover:text-[#0F1F34] p-1">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                   <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
@@ -230,19 +292,11 @@ export default function ReservasForm({
             </div>
 
             <div className="p-6 space-y-4">
-              <div>
-                <label className="text-xs text-[#6B7A99] mb-1.5 block">Área *</label>
-                <select
-                  value={form.amenityId}
-                  onChange={(e) => setForm((f) => ({ ...f, amenityId: e.target.value }))}
-                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
-                >
-                  <option value="">Seleccionar área...</option>
-                  {amenidades.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
-                </select>
-              </div>
+              {error && (
+                <div className="bg-[#FEECEA] border border-[#F3B8B0] rounded-xl px-4 py-3">
+                  <p className="text-xs text-[#E8503A]">{error}</p>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs text-[#6B7A99] mb-1.5 block">Fecha *</label>
@@ -253,33 +307,32 @@ export default function ReservasForm({
                   onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
                   className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-[#6B7A99] mb-1.5 block">Hora inicio</label>
-                  <input
-                    type="time"
-                    value={form.startTime}
-                    onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
-                    className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-[#6B7A99] mb-1.5 block">Hora fin</label>
-                  <input
-                    type="time"
-                    value={form.endTime}
-                    onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
-                    className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
-                  />
-                </div>
+                {diaInvalido && (
+                  <p className="text-xs text-[#E8503A] mt-1.5">
+                    Esta amenidad no está disponible ese día. Días habilitados:{' '}
+                    {amenidadSeleccionada.weekDays.map((d) => DIAS_LABEL[d]).join(', ')}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="text-xs text-[#6B7A99] mb-1.5 block">
-                  Notas (opcional)
-                </label>
+                <label className="text-xs text-[#6B7A99] mb-1.5 block">Hora *</label>
+                <select
+                  value={form.startTime}
+                  onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
+                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                >
+                  <option value="">Seleccionar horario...</option>
+                  {horasDisponibles.map((h) => (
+                    <option key={h} value={h}>
+                      {h} – {formatoHora(minutosDesde(h) + amenidadSeleccionada.durationMinutes)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-[#6B7A99] mb-1.5 block">Notas (opcional)</label>
                 <input
                   type="text"
                   value={form.notes}
@@ -288,18 +341,35 @@ export default function ReservasForm({
                   className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE]"
                 />
               </div>
+
+              <div className="bg-[#F7F9FC] rounded-xl px-4 py-3 border border-[#E2E8F0] space-y-1">
+                {amenidadSeleccionada.requiresApproval ? (
+                  <p className="text-xs text-[#6B7A99]">
+                    Tu reserva quedará <span className="font-medium text-[#0F1F34]">pendiente de aprobación</span> del administrador.
+                  </p>
+                ) : (
+                  <p className="text-xs text-[#6B7A99]">Tu reserva se confirma automáticamente.</p>
+                )}
+                {amenidadSeleccionada.extraCost ? (
+                  <p className="text-xs text-[#6B7A99]">
+                    Costo adicional: <span className="font-medium text-[#0F1F34]">${amenidadSeleccionada.extraCost.toLocaleString('es-MX')} MXN</span>
+                  </p>
+                ) : (
+                  <p className="text-xs text-[#6B7A99]">Incluida en tu cuota, sin costo adicional.</p>
+                )}
+                {amenidadSeleccionada.rules && (
+                  <p className="text-xs text-[#6B7A99] pt-1 border-t border-[#E2E8F0] mt-2">{amenidadSeleccionada.rules}</p>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-3 px-6 pb-6">
-              <button
-                onClick={() => setShowModal(false)}
-                className="btn-ghost flex-1 py-3 text-sm justify-center"
-              >
+              <button onClick={() => setShowModal(false)} className="btn-ghost flex-1 py-3 text-sm justify-center">
                 Cancelar
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!form.amenityId || !form.date || loading}
+                disabled={!form.date || !form.startTime || diaInvalido || loading}
                 className="btn-primary flex-1 py-3 text-sm justify-center disabled:opacity-50"
               >
                 {loading ? 'Guardando...' : 'Confirmar reserva'}

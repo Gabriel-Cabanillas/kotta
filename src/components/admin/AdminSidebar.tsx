@@ -70,6 +70,18 @@ const NAV_ITEMS = [
     ),
   },
   {
+    label: 'Amenidades',
+    href: '/amenidades',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" strokeWidth="1.8" fill="none"/>
+        <path d="M3 9h18" stroke="currentColor" strokeWidth="1.8"/>
+        <path d="M8 2v4M16 2v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M8.5 14.2l2 2 4-4.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      </svg>
+    ),
+  },
+  {
     label: 'Pagos',
     href: '/pagos',
     icon: (
