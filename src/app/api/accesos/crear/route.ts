@@ -2,13 +2,9 @@ import { NextResponse } from 'next/server'
 import type { VisitorType } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { VISITOR_TYPES } from '@/lib/constants/visitorTypes'
 
-const VALID_VISITOR_TYPES = new Set<VisitorType>([
-  'PROVEEDOR',
-  'VISITA',
-  'DELIVERY',
-  'OTRO',
-])
+const VALID_VISITOR_TYPES = new Set<VisitorType>(VISITOR_TYPES)
 
 export async function POST(req: Request) {
   const user = await getSession()

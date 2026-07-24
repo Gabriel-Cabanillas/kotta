@@ -37,11 +37,12 @@ export default async function GuardiaPage({ params }: { params: { coto: string }
   })
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC]">
+    <div className="min-h-screen bg-white-100">
       <div className="container-kotta py-10">
         <GuardiaPanel
           userName={user.name}
           orgName={user.org?.name ?? ''}
+          cotoSlug={params.coto}
           accessLogs={accessLogs}
         />
       </div>

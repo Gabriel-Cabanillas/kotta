@@ -82,6 +82,7 @@ enum VisitorType {
   PROVEEDOR
   VISITA
   DELIVERY
+  RESIDENTE
   OTRO
 }
 
@@ -170,6 +171,7 @@ model Ticket {
 
   @@unique([orgId, folio])
   @@index([orgId, status, createdAt])
+  @@index([reportedById, status, createdAt]) //new
   @@map("tickets")
 }
 
@@ -180,6 +182,7 @@ model WorkOrder {
   status         WorkOrderStatus @default(PENDIENTE)
   description    String?
   cost           Decimal?        @db.Decimal(10, 2)
+  costNote String? // New
   beforePhotoUrl String?
   afterPhotoUrl  String?
   notes          String?
@@ -245,6 +248,7 @@ model Payment {
   @@unique([orgId, userId, month, year])
   @@index([orgId, year, month])
   @@index([orgId, status])
+  @@index([userId, year, month]) // new
   @@map("payments")
 }
 
@@ -322,6 +326,8 @@ model AmenityReservation {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
+  @@index([userId, date]) // new
+  @@index([amenityId, date, status]) // new
   @@map("amenity_reservations")
 }
 

@@ -35,18 +35,18 @@ export default async function ProveedorDashboard({
   })
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC]">
+    <div className="min-h-screen bg-white">
       <ProveedorNavbar
         user={user as any}
         orgName={user.org?.name ?? ''}
         coto={params.coto}
       />
-      <main className="container-kotta py-8">
-        <div className="mb-6">
-          <h1 className="font-display text-2xl text-[#0F1F34] mb-1">
+      <main className="container-kotta py-10">
+        <div className="mb-8 animate-fade-up">
+          <h1 className="font-gotham text-2xl text-neutral-900 tracking-tight mb-1">
             Hola, {user.name.split(' ')[0]}.
           </h1>
-          <p className="text-sm text-[#6B7A99]">
+          <p className="text-sm text-neutral-400">
             {ordenes.length > 0
               ? `Tienes ${ordenes.length} orden${ordenes.length !== 1 ? 'es' : ''} activa${ordenes.length !== 1 ? 's' : ''}`
               : 'No tienes órdenes activas por ahora'}

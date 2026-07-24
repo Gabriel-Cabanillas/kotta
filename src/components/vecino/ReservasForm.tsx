@@ -47,9 +47,9 @@ type Ocupacion = {
 }
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  PENDIENTE:  { color: '#F5A623', bg: '#FEF3E2', label: 'Pendiente'  },
-  CONFIRMADA: { color: '#1DB87E', bg: '#E6F9F1', label: 'Confirmada' },
-  CANCELADA:  { color: '#E8503A', bg: '#FEECEA', label: 'Cancelada'  },
+  PENDIENTE:  { color: '#B8860B', bg: 'rgba(255,186,46,0.16)', label: 'Pendiente'  },
+  CONFIRMADA: { color: '#1E8A34', bg: 'rgba(43,200,66,0.12)',  label: 'Confirmada' },
+  CANCELADA:  { color: '#D8352C', bg: 'rgba(253,95,86,0.12)',  label: 'Cancelada'  },
 }
 
 const DIAS_LABEL = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
@@ -228,24 +228,24 @@ export default function ReservasForm({
     <div className="space-y-6">
 
       {/* Mis reservas próximas */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0]">
-          <h2 className="font-medium text-[#0F1F34] text-sm">Mis reservas próximas</h2>
+      <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
+          <h2 className="font-medium text-neutral-900 text-sm">Mis reservas próximas</h2>
         </div>
 
         {misReservas.length === 0 ? (
           <div className="py-12 text-center">
-            <p className="text-[#6B7A99] text-sm">No tienes reservas próximas.</p>
+            <p className="text-neutral-400 text-sm">No tienes reservas próximas.</p>
           </div>
         ) : (
-          <div className="divide-y divide-[#E2E8F0]">
+          <div className="divide-y divide-neutral-100">
             {misReservas.map((reserva) => {
               const st = STATUS_CONFIG[reserva.status] ?? STATUS_CONFIG.PENDIENTE
               return (
                 <div key={reserva.id} className="flex items-center justify-between px-6 py-4">
                   <div>
-                    <p className="text-sm font-medium text-[#0F1F34]">{reserva.amenity.name}</p>
-                    <p className="text-xs text-[#6B7A99] mt-0.5">
+                    <p className="text-sm font-medium text-neutral-900">{reserva.amenity.name}</p>
+                    <p className="text-xs text-neutral-400 mt-0.5">
                       {new Date(reserva.date).toLocaleDateString('es-MX', {
                         weekday: 'long', day: 'numeric', month: 'long',
                       })}
@@ -257,7 +257,7 @@ export default function ReservasForm({
                       {st.label}
                     </span>
                     {reserva.status !== 'CANCELADA' && (
-                      <button onClick={() => handleCancelar(reserva.id)} className="text-xs text-[#E8503A] hover:underline">
+                      <button onClick={() => handleCancelar(reserva.id)} className="text-xs text-red hover:underline">
                         Cancelar
                       </button>
                     )}
@@ -271,38 +271,38 @@ export default function ReservasForm({
 
       {/* Amenidades disponibles */}
       {amenidades.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] py-12 text-center">
-          <p className="text-[#6B7A99] text-sm">El administrador no ha configurado amenidades aún.</p>
+        <div className="bg-white rounded-2xl border border-neutral-100 py-12 text-center">
+          <p className="text-neutral-400 text-sm">El administrador no ha configurado amenidades aún.</p>
         </div>
       ) : (
         <div>
-          <h2 className="font-medium text-[#0F1F34] text-sm mb-3">Áreas disponibles</h2>
+          <h2 className="font-medium text-neutral-900 text-sm mb-3">Áreas disponibles</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             {amenidades.map((amenidad) => (
-              <div key={amenidad.id} className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden hover:border-[#C5D5EE] hover:shadow-sm transition-all">
+              <div key={amenidad.id} className="bg-white rounded-2xl border border-neutral-100 overflow-hidden hover:border-neutral-900/15 hover:shadow-card-hover transition-all duration-200">
                 {amenidad.imageUrl ? (
                   <img src={amenidad.imageUrl} alt={amenidad.name} className="w-full aspect-video object-cover" />
                 ) : (
-                  <div className="w-full aspect-video bg-[#FEF3E2] flex items-center justify-center">
+                  <div className="w-full aspect-video bg-neutral-100 flex items-center justify-center">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                      <rect x="3" y="4" width="18" height="18" rx="2" stroke="#F5A623" strokeWidth="1.8" fill="none"/>
-                      <path d="M3 9h18M8 2v4M16 2v4" stroke="#F5A623" strokeWidth="1.8" strokeLinecap="round"/>
+                      <rect x="3" y="4" width="18" height="18" rx="2" stroke="#A6A6A6" strokeWidth="1.8" fill="none"/>
+                      <path d="M3 9h18M8 2v4M16 2v4" stroke="#A6A6A6" strokeWidth="1.8" strokeLinecap="round"/>
                     </svg>
                   </div>
                 )}
 
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-medium text-[#0F1F34]">{amenidad.name}</h3>
+                    <h3 className="font-medium text-neutral-900">{amenidad.name}</h3>
                     {amenidad.capacity && (
-                      <span className="text-xs text-[#6B7A99] bg-[#F7F9FC] px-2 py-1 rounded-lg border border-[#E2E8F0] flex-shrink-0 ml-2">
+                      <span className="text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded-lg flex-shrink-0 ml-2">
                         Hasta {amenidad.capacity}
                       </span>
                     )}
                   </div>
 
                   {amenidad.description && (
-                    <p className="text-xs text-[#6B7A99] mb-3">{amenidad.description}</p>
+                    <p className="text-xs text-neutral-400 mb-3">{amenidad.description}</p>
                   )}
 
                   <div className="flex flex-wrap gap-1.5 mb-3">
@@ -310,7 +310,7 @@ export default function ReservasForm({
                       <span
                         key={i}
                         className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                          amenidad.weekDays.includes(i) ? 'bg-[#E8F4FD] text-[#185FA5]' : 'text-[#C5D5EE]'
+                          amenidad.weekDays.includes(i) ? 'bg-red/10 text-red' : 'text-neutral-200'
                         }`}
                       >
                         {label}
@@ -318,10 +318,10 @@ export default function ReservasForm({
                     ))}
                   </div>
 
-                  <p className="text-xs text-[#6B7A99] mb-1">
+                  <p className="text-xs text-neutral-400 mb-1">
                     {amenidad.startTime} – {amenidad.endTime} · sesiones de {amenidad.durationMinutes} min
                   </p>
-                  <p className="text-xs text-[#6B7A99] mb-3">
+                  <p className="text-xs text-neutral-400 mb-3">
                     {amenidad.requiresApproval ? 'Requiere aprobación del administrador' : 'Confirmación automática'}
                     {' · '}
                     {amenidad.extraCost ? `$${amenidad.extraCost.toLocaleString('es-MX')} MXN` : 'Incluida en tu cuota'}
@@ -329,7 +329,7 @@ export default function ReservasForm({
 
                   <button
                     onClick={() => abrirModalPara(amenidad.id)}
-                    className="text-sm text-[#4FA8E8] font-medium hover:underline"
+                    className="text-sm text-red font-medium hover:underline"
                   >
                     Reservar →
                   </button>
@@ -343,15 +343,15 @@ export default function ReservasForm({
       {/* Modal nueva reserva */}
       {showModal && amenidadSeleccionada && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
+          <div className="bg-white rounded-2xl border border-neutral-100 w-full max-w-md shadow-black" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-neutral-100">
               <div>
-                <h3 className="font-medium text-[#0F1F34]">Reservar {amenidadSeleccionada.name}</h3>
-                <p className="text-xs text-[#6B7A99] mt-0.5">
+                <h3 className="font-medium text-neutral-900">Reservar {amenidadSeleccionada.name}</h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
                   {amenidadSeleccionada.startTime}–{amenidadSeleccionada.endTime} · sesiones de {amenidadSeleccionada.durationMinutes} min
                 </p>
               </div>
-              <button onClick={() => setShowModal(false)} className="text-[#6B7A99] hover:text-[#0F1F34] p-1">
+              <button onClick={() => setShowModal(false)} className="text-neutral-400 hover:text-neutral-900 p-1 transition-colors">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                   <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
@@ -360,39 +360,39 @@ export default function ReservasForm({
 
             <div className="p-6 space-y-4">
               {error && (
-                <div className="bg-[#FEECEA] border border-[#F3B8B0] rounded-xl px-4 py-3">
-                  <p className="text-xs text-[#E8503A]">{error}</p>
+                <div className="bg-red/5 border border-red/20 rounded-xl px-4 py-3">
+                  <p className="text-xs text-red">{error}</p>
                 </div>
               )}
 
               <div>
-                <label className="text-xs text-[#6B7A99] mb-1.5 block">Fecha *</label>
+                <label className="text-xs text-neutral-400 mb-1.5 block">Fecha *</label>
                 <input
                   type="date"
                   value={form.date}
                   min={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setForm((f) => ({ ...f, date: e.target.value, startTime: '' }))}
-                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+                  className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-red transition-colors"
                 />
                 {diaInvalido && (
-                  <p className="text-xs text-[#E8503A] mt-1.5">
+                  <p className="text-xs text-red mt-1.5">
                     Esta amenidad no está disponible ese día. Días habilitados:{' '}
                     {amenidadSeleccionada.weekDays.map((d) => DIAS_LABEL[d]).join(', ')}
                   </p>
                 )}
                 {!diaInvalido && diaSinCupo && (
-                  <p className="text-xs text-[#E8503A] mt-1.5">
+                  <p className="text-xs text-red mt-1.5">
                     Ese día ya no tiene horarios disponibles, elige otra fecha.
                   </p>
                 )}
                 {!diaInvalido && !diaSinCupo && ocupadasDelDia.length > 0 && (
-                  <p className="text-xs text-[#6B7A99] mt-1.5">
+                  <p className="text-xs text-neutral-400 mt-1.5">
                     Horarios ya ocupados ese día:{' '}
                     {ocupadasDelDia.map((o) => `${o.startTime}–${o.endTime}`).join(', ')}
                   </p>
                 )}
                 {fechasSinCupo.length > 0 && (
-                  <p className="text-xs text-[#6B7A99] mt-1.5">
+                  <p className="text-xs text-neutral-400 mt-1.5">
                     Próximas fechas sin cupo:{' '}
                     {fechasSinCupo.map((f, i) => {
                       const [y, m, d] = f.split('-').map(Number)
@@ -404,12 +404,12 @@ export default function ReservasForm({
               </div>
 
               <div>
-                <label className="text-xs text-[#6B7A99] mb-1.5 block">Hora *</label>
+                <label className="text-xs text-neutral-400 mb-1.5 block">Hora *</label>
                 <select
                   value={form.startTime}
                   onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
                   disabled={!form.date || diaInvalido || diaSinCupo}
-                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] disabled:bg-[#F7F9FC] disabled:text-[#C5D5EE]"
+                  className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-red disabled:bg-neutral-100 disabled:text-neutral-400 transition-colors"
                 >
                   <option value="">
                     {!form.date ? 'Elige una fecha primero...' : 'Seleccionar horario...'}
@@ -423,33 +423,33 @@ export default function ReservasForm({
               </div>
 
               <div>
-                <label className="text-xs text-[#6B7A99] mb-1.5 block">Notas (opcional)</label>
+                <label className="text-xs text-neutral-400 mb-1.5 block">Notas (opcional)</label>
                 <input
                   type="text"
                   value={form.notes}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   placeholder="Ej. Fiesta de cumpleaños, 20 personas"
-                  className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE]"
+                  className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-red placeholder:text-neutral-400/70 transition-colors"
                 />
               </div>
 
-              <div className="bg-[#F7F9FC] rounded-xl px-4 py-3 border border-[#E2E8F0] space-y-1">
+              <div className="bg-neutral-100/60 rounded-xl px-4 py-3 border border-neutral-100 space-y-1">
                 {amenidadSeleccionada.requiresApproval ? (
-                  <p className="text-xs text-[#6B7A99]">
-                    Tu reserva quedará <span className="font-medium text-[#0F1F34]">pendiente de aprobación</span> del administrador.
+                  <p className="text-xs text-neutral-400">
+                    Tu reserva quedará <span className="font-medium text-neutral-900">pendiente de aprobación</span> del administrador.
                   </p>
                 ) : (
-                  <p className="text-xs text-[#6B7A99]">Tu reserva se confirma automáticamente.</p>
+                  <p className="text-xs text-neutral-400">Tu reserva se confirma automáticamente.</p>
                 )}
                 {amenidadSeleccionada.extraCost ? (
-                  <p className="text-xs text-[#6B7A99]">
-                    Costo adicional: <span className="font-medium text-[#0F1F34]">${amenidadSeleccionada.extraCost.toLocaleString('es-MX')} MXN</span>
+                  <p className="text-xs text-neutral-400">
+                    Costo adicional: <span className="font-medium text-neutral-900">${amenidadSeleccionada.extraCost.toLocaleString('es-MX')} MXN</span>
                   </p>
                 ) : (
-                  <p className="text-xs text-[#6B7A99]">Incluida en tu cuota, sin costo adicional.</p>
+                  <p className="text-xs text-neutral-400">Incluida en tu cuota, sin costo adicional.</p>
                 )}
                 {amenidadSeleccionada.rules && (
-                  <p className="text-xs text-[#6B7A99] pt-1 border-t border-[#E2E8F0] mt-2">{amenidadSeleccionada.rules}</p>
+                  <p className="text-xs text-neutral-400 pt-1 border-t border-neutral-100 mt-2">{amenidadSeleccionada.rules}</p>
                 )}
               </div>
             </div>

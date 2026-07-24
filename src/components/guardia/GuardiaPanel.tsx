@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import type { AccessLog, VisitorType } from '@prisma/client'
+import { VISITOR_TYPES, VISITOR_LABELS } from '@/lib/constants/visitorTypes'
 
 type AccessLogWithGuard = AccessLog & {
   guard: { name: string }
@@ -11,16 +13,8 @@ type AccessLogWithGuard = AccessLog & {
 type GuardiaPanelProps = {
   userName: string
   orgName: string
+  cotoSlug: string
   accessLogs: AccessLogWithGuard[]
-}
-
-const VISITOR_TYPES: VisitorType[] = ['VISITA', 'PROVEEDOR', 'DELIVERY', 'OTRO']
-
-const VISITOR_LABELS: Record<VisitorType, string> = {
-  PROVEEDOR: 'Proveedor',
-  VISITA: 'Visita',
-  DELIVERY: 'Delivery',
-  OTRO: 'Otro',
 }
 
 function formatTime(value: Date | string | null) {
@@ -35,6 +29,7 @@ function formatTime(value: Date | string | null) {
 export default function GuardiaPanel({
   userName,
   orgName,
+  cotoSlug,
   accessLogs,
 }: GuardiaPanelProps) {
   const router = useRouter()
@@ -133,60 +128,98 @@ export default function GuardiaPanel({
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-3 mb-8">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#6B7A99] flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div
+        className="flex flex-wrap items-start justify-between gap-4 mb-10 animate-fade-up"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-black flex items-center justify-center shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path
                 d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
                 stroke="white"
                 strokeWidth="1.8"
                 strokeLinecap="round"
+                strokeLinejoin="round"
                 fill="none"
               />
             </svg>
           </div>
           <div>
-            <p className="text-xs text-[#6B7A99]">{orgName}</p>
-            <h1 className="font-display text-xl text-[#0F1F34]">
-              Bitacora del dia
+            <p className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-0.5">
+              {orgName}
+            </p>
+            <h1 className="text-2xl font-semibold text-neutral-900">
+              Bitácora del día
             </h1>
-            <p className="text-sm text-[#6B7A99]">Guardia: {userName}</p>
+            <p className="text-sm text-neutral-400 mt-0.5">
+              Guardia: <span className="text-neutral-800">{userName}</span>
+            </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={handleLogout}
-          disabled={loggingOut}
-          className="text-xs text-[#0F1F34] border border-[#E2E8F0] bg-white hover:border-[#C5D5EE] px-3 py-2 rounded-lg transition-all disabled:opacity-50"
-        >
-          {loggingOut ? 'Cerrando...' : 'Cerrar sesion'}
-        </button>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
-          <p className="text-xs text-[#6B7A99] mb-2">Accesos del dia</p>
-          <p className="font-display text-3xl text-[#0F1F34]">{accessLogs.length}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
-          <p className="text-xs text-[#6B7A99] mb-2">Personas dentro</p>
-          <p className="font-display text-3xl text-[#1DB87E]">{peopleInside}</p>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/${cotoSlug}/guardia/reportes`}
+            className="btn-ghost text-xs py-2 px-3.5"
+          >
+            Ver reportes
+          </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="btn-ghost text-xs py-2 px-3.5 disabled:opacity-50"
+          >
+            {loggingOut ? 'Cerrando...' : 'Cerrar sesión'}
+          </button>
         </div>
       </div>
 
+      {/* ── Stats ──────────────────────────────────────────── */}
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 animate-fade-up"
+        style={{ animationDelay: '80ms' }}
+      >
+        <div className="card p-6">
+          <p className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-3">
+            Accesos del día
+          </p>
+          <p className="text-4xl font-semibold text-neutral-900 tabular-nums">
+            {accessLogs.length}
+          </p>
+        </div>
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <p className="text-xs font-medium text-neutral-400 uppercase tracking-wider">
+              Personas dentro
+            </p>
+            {peopleInside > 0 && (
+              <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse-slow" />
+            )}
+          </div>
+          <p className="text-4xl font-semibold text-neutral-900 tabular-nums">
+            {peopleInside}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Formulario ─────────────────────────────────────── */}
       <form
         onSubmit={handleCreateEntry}
-        className="bg-white rounded-2xl border border-[#E2E8F0] p-5 mb-6"
+        className="card mb-6 animate-fade-up"
+        style={{ animationDelay: '140ms' }}
       >
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <h2 className="font-medium text-[#0F1F34]">Registrar entrada</h2>
-          {error && <p className="text-xs text-[#E8503A]">{error}</p>}
+        <div className="flex items-center justify-between gap-3 mb-5">
+          <h2 className="text-base font-semibold text-neutral-900">
+            Registrar entrada
+          </h2>
+          {error && <p className="text-xs font-medium text-red">{error}</p>}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="text-xs text-[#6B7A99] mb-1.5 block">
+            <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
               Nombre *
             </label>
             <input
@@ -194,18 +227,18 @@ export default function GuardiaPanel({
               value={visitorName}
               onChange={(event) => setVisitorName(event.target.value)}
               placeholder="Nombre del visitante"
-              className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE]"
+              className="w-full text-sm border border-neutral-100 rounded-xl px-3.5 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors placeholder:text-neutral-400"
             />
           </div>
 
           <div>
-            <label className="text-xs text-[#6B7A99] mb-1.5 block">
+            <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
               Tipo
             </label>
             <select
               value={visitorType}
               onChange={(event) => setVisitorType(event.target.value as VisitorType)}
-              className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+              className="w-full text-sm border border-neutral-100 rounded-xl px-3.5 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors"
             >
               {VISITOR_TYPES.map((type) => (
                 <option key={type} value={type}>
@@ -216,7 +249,7 @@ export default function GuardiaPanel({
           </div>
 
           <div>
-            <label className="text-xs text-[#6B7A99] mb-1.5 block">
+            <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
               Notas
             </label>
             <input
@@ -224,78 +257,91 @@ export default function GuardiaPanel({
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               placeholder="Opcional"
-              className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE]"
+              className="w-full text-sm border border-neutral-100 rounded-xl px-3.5 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-black transition-colors placeholder:text-neutral-400"
             />
           </div>
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-5 flex justify-end">
           <button
             type="submit"
             disabled={!visitorName.trim() || loadingEntry}
-            className="btn-primary text-sm py-2.5 px-5 disabled:opacity-50"
+            className="btn-primary text-sm py-2.5 px-5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {loadingEntry ? 'Registrando...' : 'Registrar entrada'}
           </button>
         </div>
       </form>
 
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden">
-        <div className="px-5 py-4 border-b border-[#E2E8F0]">
-          <h2 className="font-medium text-[#0F1F34]">Accesos de hoy</h2>
+      {/* ── Tabla de accesos ───────────────────────────────── */}
+      <div
+        className="card p-0 overflow-hidden animate-fade-up"
+        style={{ animationDelay: '200ms' }}
+      >
+        <div className="px-6 py-4 border-b border-neutral-100">
+          <h2 className="text-base font-semibold text-neutral-900">
+            Accesos de hoy
+          </h2>
         </div>
 
         {accessLogs.length === 0 ? (
-          <div className="px-5 py-12 text-center">
-            <p className="text-sm text-[#6B7A99]">No hay accesos registrados hoy.</p>
+          <div className="px-6 py-16 text-center">
+            <p className="text-sm text-neutral-400">
+              No hay accesos registrados hoy.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-[#F7F9FC] text-xs text-[#6B7A99]">
+              <thead className="bg-neutral-100/60 text-xs text-neutral-400 uppercase tracking-wider">
                 <tr>
-                  <th className="text-left font-medium px-5 py-3">Nombre</th>
-                  <th className="text-left font-medium px-5 py-3">Tipo</th>
-                  <th className="text-left font-medium px-5 py-3">Entrada</th>
-                  <th className="text-left font-medium px-5 py-3">Salida</th>
-                  <th className="text-left font-medium px-5 py-3">Notas</th>
-                  <th className="text-right font-medium px-5 py-3">Accion</th>
+                  <th className="text-left font-medium px-6 py-3">Nombre</th>
+                  <th className="text-left font-medium px-6 py-3">Tipo</th>
+                  <th className="text-left font-medium px-6 py-3">Entrada</th>
+                  <th className="text-left font-medium px-6 py-3">Salida</th>
+                  <th className="text-left font-medium px-6 py-3">Notas</th>
+                  <th className="text-right font-medium px-6 py-3">Acción</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E2E8F0]">
+              <tbody className="divide-y divide-neutral-100">
                 {accessLogs.map((accessLog) => (
-                  <tr key={accessLog.id} className="hover:bg-[#F7F9FC]">
-                    <td className="px-5 py-4 text-[#0F1F34] font-medium">
+                  <tr key={accessLog.id} className="hover:bg-neutral-100/40 transition-colors">
+                    <td className="px-6 py-4 text-neutral-900 font-medium">
                       {accessLog.visitorName}
                     </td>
-                    <td className="px-5 py-4 text-[#4A5568]">
+                    <td className="px-6 py-4 text-neutral-800">
                       {VISITOR_LABELS[accessLog.visitorType]}
                     </td>
-                    <td className="px-5 py-4 text-[#4A5568]">
+                    <td className="px-6 py-4 text-neutral-800 tabular-nums">
                       {formatTime(accessLog.entryTime)}
                     </td>
-                    <td className="px-5 py-4 text-[#4A5568]">
+                    <td className="px-6 py-4">
                       {accessLog.exitTime ? (
-                        formatTime(accessLog.exitTime)
+                        <span className="text-neutral-800 tabular-nums">
+                          {formatTime(accessLog.exitTime)}
+                        </span>
                       ) : (
-                        <span className="text-[#1DB87E] font-medium">Dentro</span>
+                        <span className="badge bg-red/10 text-red gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse-slow" />
+                          Dentro
+                        </span>
                       )}
                     </td>
-                    <td className="px-5 py-4 text-[#6B7A99] max-w-xs truncate">
-                      {accessLog.notes || '-'}
+                    <td className="px-6 py-4 text-neutral-400 max-w-xs truncate">
+                      {accessLog.notes || '—'}
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-6 py-4 text-right">
                       {!accessLog.exitTime ? (
                         <button
                           type="button"
                           onClick={() => handleCloseAccess(accessLog.id)}
                           disabled={closingId === accessLog.id}
-                          className="text-xs text-[#0F1F34] border border-[#E2E8F0] hover:border-[#C5D5EE] px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
+                          className="btn-ghost text-xs py-1.5 px-3 disabled:opacity-40"
                         >
                           {closingId === accessLog.id ? 'Registrando...' : 'Registrar salida'}
                         </button>
                       ) : (
-                        <span className="text-xs text-[#6B7A99]">Cerrado</span>
+                        <span className="text-xs text-neutral-400">Cerrado</span>
                       )}
                     </td>
                   </tr>

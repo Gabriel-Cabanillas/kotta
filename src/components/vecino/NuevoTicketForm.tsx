@@ -71,10 +71,10 @@ export default function NuevoTicketForm({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 space-y-5">
+    <div className="bg-white rounded-2xl border border-neutral-100 p-6 space-y-5">
 
       <div>
-        <label className="text-xs text-[#6B7A99] mb-1.5 block">
+        <label className="text-xs text-neutral-400 mb-1.5 block">
           Título del problema *
         </label>
         <input
@@ -82,16 +82,16 @@ export default function NuevoTicketForm({
           value={form.title}
           onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
           placeholder="Ej. Fuga de agua en pasillo"
-          className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE]"
+          className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-red placeholder:text-neutral-400/70 transition-colors"
         />
       </div>
 
       <div>
-        <label className="text-xs text-[#6B7A99] mb-1.5 block">Categoría</label>
+        <label className="text-xs text-neutral-400 mb-1.5 block">Categoría</label>
         <select
           value={form.category}
           onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-          className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8]"
+          className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-red transition-colors"
         >
           {CATEGORIAS.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
@@ -100,7 +100,7 @@ export default function NuevoTicketForm({
       </div>
 
       <div>
-        <label className="text-xs text-[#6B7A99] mb-1.5 block">
+        <label className="text-xs text-neutral-400 mb-1.5 block">
           Descripción *
         </label>
         <textarea
@@ -108,13 +108,13 @@ export default function NuevoTicketForm({
           onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           placeholder="Describe el problema con el mayor detalle posible: ubicación exacta, desde cuándo ocurre, si es urgente..."
           rows={4}
-          className="w-full text-sm border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-[#0F1F34] bg-white focus:outline-none focus:border-[#4FA8E8] placeholder:text-[#C5D5EE] resize-none"
+          className="w-full text-sm border border-neutral-100 rounded-xl px-3 py-2.5 text-neutral-900 bg-white focus:outline-none focus:border-red placeholder:text-neutral-400/70 resize-none transition-colors"
         />
       </div>
 
       {/* Foto del problema */}
       <div>
-        <label className="text-xs text-[#6B7A99] mb-1.5 block">
+        <label className="text-xs text-neutral-400 mb-1.5 block">
           Foto del problema (opcional)
         </label>
         <input
@@ -128,24 +128,24 @@ export default function NuevoTicketForm({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="w-full border-2 border-dashed border-[#C5D5EE] rounded-xl py-5 flex flex-col items-center gap-2 hover:border-[#4FA8E8] hover:bg-[#E8F4FD] transition-all"
+          className="w-full border-2 border-dashed border-neutral-200 rounded-xl py-5 flex flex-col items-center gap-2 hover:border-red hover:bg-red/5 transition-all duration-200"
         >
           {foto ? (
             <div className="flex items-center gap-2">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M5 13l4 4L19 7" stroke="#1DB87E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M5 13l4 4L19 7" stroke="#2BC842" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <p className="text-sm font-medium text-[#1DB87E]">{foto.name}</p>
+              <p className="text-sm font-medium" style={{ color: '#1E8A34' }}>{foto.name}</p>
             </div>
           ) : (
             <>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="3" width="18" height="18" rx="3" stroke="#4FA8E8" strokeWidth="1.8" fill="none"/>
-                <circle cx="8.5" cy="8.5" r="1.5" fill="#4FA8E8"/>
-                <path d="M3 15l5-5 4 4 3-3 6 6" stroke="#4FA8E8" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+                <rect x="3" y="3" width="18" height="18" rx="3" stroke="#FD5F56" strokeWidth="1.8" fill="none"/>
+                <circle cx="8.5" cy="8.5" r="1.5" fill="#FD5F56"/>
+                <path d="M3 15l5-5 4 4 3-3 6 6" stroke="#FD5F56" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
               </svg>
-              <p className="text-sm text-[#4FA8E8] font-medium">Agregar foto del problema</p>
-              <p className="text-xs text-[#6B7A99]">Toca para tomar o seleccionar una foto</p>
+              <p className="text-sm text-neutral-900 font-medium">Agregar foto del problema</p>
+              <p className="text-xs text-neutral-400">Toca para tomar o seleccionar una foto</p>
             </>
           )}
         </button>
@@ -153,7 +153,7 @@ export default function NuevoTicketForm({
           <button
             type="button"
             onClick={() => setFoto(null)}
-            className="text-xs text-[#E8503A] hover:underline mt-1.5"
+            className="text-xs text-red hover:underline mt-1.5"
           >
             Quitar foto
           </button>
@@ -161,16 +161,16 @@ export default function NuevoTicketForm({
       </div>
 
       {houseNumber && (
-        <div className="bg-[#F7F9FC] rounded-xl px-4 py-3 border border-[#E2E8F0]">
-          <p className="text-xs text-[#6B7A99]">
+        <div className="bg-neutral-100/60 rounded-xl px-4 py-3 border border-neutral-100">
+          <p className="text-xs text-neutral-400">
             El reporte se registrará a nombre de{' '}
-            <span className="font-medium text-[#0F1F34]">Casa {houseNumber}</span>
+            <span className="font-medium text-neutral-900">Casa {houseNumber}</span>
           </p>
         </div>
       )}
 
-      <div className="bg-[#E8F4FD] rounded-xl px-4 py-3">
-        <p className="text-xs text-[#185FA5]">
+      <div className="bg-black/[0.03] rounded-xl px-4 py-3">
+        <p className="text-xs text-neutral-800">
           El administrador recibirá una notificación inmediata y
           te avisará cuando el problema sea atendido.
         </p>

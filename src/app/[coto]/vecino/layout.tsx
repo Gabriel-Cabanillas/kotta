@@ -19,10 +19,10 @@ export default async function VecinoLayout({
   if (user.role !== 'VECINO') redirect('/dashboard')
   if (user.org?.slug !== params.coto) redirect('/dashboard')
 
-  return (
-    <div className="min-h-screen bg-[#F7F9FC]">
+    return (
+    <div className="min-h-screen bg-neutral-100">
       <VecinoNavbar user={user as any} orgName={user.org?.name ?? ''} coto={params.coto} />
-      <main className="container-kotta py-8">{children}</main>
+      <main className="container-kotta py-8 animate-fade-in">{children}</main>
     </div>
   )
 }

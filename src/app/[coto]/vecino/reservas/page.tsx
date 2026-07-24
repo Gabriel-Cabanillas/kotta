@@ -14,9 +14,6 @@ export default async function VecinoReservas({ params }: { params: { coto: strin
     prisma.amenityReservation.findMany({
       where: { userId: user.id, date: { gte: now } }, orderBy: { date: 'asc' }, include: { amenity: true },
     }),
-    // Ocupación de TODAS las amenidades del coto (no solo las del vecino actual),
-    // para poder marcar fechas/horarios ya tomados. Solo campos necesarios,
-    // sin exponer qué vecino hizo cada reserva.
     prisma.amenityReservation.findMany({
       where: {
         amenity: { orgId: user.orgId! },
@@ -27,17 +24,16 @@ export default async function VecinoReservas({ params }: { params: { coto: strin
     }),
   ])
 
-  // Decimal de Prisma no es serializable a Client Components: se convierte a number plano
   const amenidadesSerializadas = amenidades.map((a) => ({
     ...a,
     extraCost: a.extraCost ? Number(a.extraCost) : null,
   }))
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <div className="mb-6">
-        <h1 className="font-display text-2xl text-[#0F1F34] mb-1">Reservas</h1>
-        <p className="text-sm text-[#6B7A99]">Áreas comunes disponibles para reservar</p>
+        <h1 className="font-gotham text-2xl text-neutral-900 mb-1">Reservas</h1>
+        <p className="text-sm text-neutral-400">Áreas comunes disponibles para reservar</p>
       </div>
       <ReservasForm
         amenidades={amenidadesSerializadas}

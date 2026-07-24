@@ -30,30 +30,18 @@ export const getSession = cache(async () => {
   // 1. Inicia el temporizador aquí
   console.time('[getSession] db query')
 
-  const session = await (prisma as any).session.findUnique({
-    where:   { token },
-
-
-
-
+const session = await (prisma as any).session.findUnique({
+    where: { token },
     select: {
-    user: {
+      expiresAt: true,
+      user: {
         select: {
-            id: true,
-            name: true,
-            role: true,
-            orgId: true,
-            org: {
-                select: {
-                    id: true,
-                    name: true,
-                    slug: true
-                }
-            }
+          id: true, name: true, role: true, orgId: true, houseNumber: true,
+          org: { select: { id: true, name: true, slug: true } }
         }
+      }
     }
-  }
-})
+  })
 
   // 2. Termina el temporizador justo después de que la query de la DB responde
     console.timeEnd('[getSession] db query')
