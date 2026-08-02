@@ -97,3 +97,125 @@ export async function enviarInvitacion(
 
   console.log('✅ Invitación enviada, ID:', data?.id)
 }
+
+export async function enviarNotificacionCargo(
+  email: string,
+  nombre: string,
+  concepto: string,
+  monto: number,
+  fechaLimite: Date
+) {
+  const montoFormateado = monto.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+  const fechaFormateada = fechaLimite.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  const { data, error } = await resend.emails.send({
+    from:    'KOTTA <onboarding@resend.dev>',
+    to:      email,
+    subject: `Nuevo cargo: ${concepto}`,
+    html: `
+      <div style="font-family: 'DM Sans', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 24px; background: #F7F9FC;">
+        <div style="background: white; border-radius: 16px; padding: 40px; border: 1px solid #E2E8F0;">
+          <div style="width: 48px; height: 48px; background: #1E3A5F; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+            <span style="color: #4FA8E8; font-size: 24px; font-weight: bold;">K</span>
+          </div>
+          <h1 style="color: #0F1F34; font-size: 22px; margin: 0 0 8px;">Hola, ${nombre}</h1>
+          <p style="color: #4A5568; font-size: 15px; margin: 0 0 32px;">Se te asignó un nuevo cargo en tu condominio.</p>
+          <div style="background: #E8F0F9; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+            <p style="color: #6B7A99; font-size: 13px; margin: 0 0 4px;">${concepto}</p>
+            <p style="color: #1E3A5F; font-size: 28px; font-weight: bold; margin: 0 0 8px;">${montoFormateado}</p>
+            <p style="color: #6B7A99; font-size: 13px; margin: 0;">Vence el ${fechaFormateada}</p>
+          </div>
+          <p style="color: #6B7A99; font-size: 13px; margin: 0;">Ingresa a KOTTA para revisar el detalle y realizar tu pago.</p>
+        </div>
+        <p style="color: #6B7A99; font-size: 11px; text-align: center; margin-top: 24px;">KOTTA · Tu comunidad, bajo control.</p>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('❌ Resend error:', JSON.stringify(error, null, 2))
+    // No relanzamos el error: si el email falla, no debe tumbar la creación
+    // del cargo — el vecino igual lo va a ver in-app.
+  } else {
+    console.log('✅ Notificación de cargo enviada, ID:', data?.id)
+  }
+}
+
+export async function enviarNotificacionPagoExitoso(
+  email: string,
+  nombre: string,
+  concepto: string,
+  monto: number
+) {
+  const montoFormateado = monto.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+
+  const { data, error } = await resend.emails.send({
+    from:    'KOTTA <onboarding@resend.dev>',
+    to:      email,
+    subject: `Pago confirmado: ${concepto}`,
+    html: `
+      <div style="font-family: 'DM Sans', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 24px; background: #F7F9FC;">
+        <div style="background: white; border-radius: 16px; padding: 40px; border: 1px solid #E2E8F0;">
+          <div style="width: 48px; height: 48px; background: #1E3A5F; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+            <span style="color: #4FA8E8; font-size: 24px; font-weight: bold;">K</span>
+          </div>
+          <h1 style="color: #0F1F34; font-size: 22px; margin: 0 0 8px;">Hola, ${nombre}</h1>
+          <p style="color: #4A5568; font-size: 15px; margin: 0 0 32px;">Tu pago fue confirmado. Gracias por estar al día.</p>
+          <div style="background: #EAF7EC; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+            <p style="color: #6B7A99; font-size: 13px; margin: 0 0 4px;">${concepto}</p>
+            <p style="color: #1E3A5F; font-size: 28px; font-weight: bold; margin: 0;">${montoFormateado}</p>
+          </div>
+          <p style="color: #6B7A99; font-size: 13px; margin: 0;">Puedes descargar tu comprobante desde KOTTA en cualquier momento.</p>
+        </div>
+        <p style="color: #6B7A99; font-size: 11px; text-align: center; margin-top: 24px;">KOTTA · Tu comunidad, bajo control.</p>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('❌ Resend error:', JSON.stringify(error, null, 2))
+    // No relanzamos: el vecino igual ve el pago confirmado in-app.
+  } else {
+    console.log('✅ Notificación de pago exitoso enviada, ID:', data?.id)
+  }
+}
+
+export async function enviarNotificacionPagoFallido(
+  email: string,
+  nombre: string,
+  concepto: string,
+  monto: number,
+  motivo?: string
+) {
+  const montoFormateado = monto.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+
+  const { data, error } = await resend.emails.send({
+    from:    'KOTTA <onboarding@resend.dev>',
+    to:      email,
+    subject: `No pudimos procesar tu pago: ${concepto}`,
+    html: `
+      <div style="font-family: 'DM Sans', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 24px; background: #F7F9FC;">
+        <div style="background: white; border-radius: 16px; padding: 40px; border: 1px solid #E2E8F0;">
+          <div style="width: 48px; height: 48px; background: #1E3A5F; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+            <span style="color: #4FA8E8; font-size: 24px; font-weight: bold;">K</span>
+          </div>
+          <h1 style="color: #0F1F34; font-size: 22px; margin: 0 0 8px;">Hola, ${nombre}</h1>
+          <p style="color: #4A5568; font-size: 15px; margin: 0 0 32px;">No pudimos procesar tu pago. Puedes intentarlo de nuevo desde KOTTA.</p>
+          <div style="background: #FCEBEA; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+            <p style="color: #6B7A99; font-size: 13px; margin: 0 0 4px;">${concepto}</p>
+            <p style="color: #1E3A5F; font-size: 28px; font-weight: bold; margin: 0 0 8px;">${montoFormateado}</p>
+            ${motivo ? `<p style="color: #6B7A99; font-size: 13px; margin: 0;">${motivo}</p>` : ''}
+          </div>
+          <p style="color: #6B7A99; font-size: 13px; margin: 0;">Ingresa a KOTTA para intentar de nuevo con otro método de pago.</p>
+        </div>
+        <p style="color: #6B7A99; font-size: 11px; text-align: center; margin-top: 24px;">KOTTA · Tu comunidad, bajo control.</p>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('❌ Resend error:', JSON.stringify(error, null, 2))
+  } else {
+    console.log('✅ Notificación de pago fallido enviada, ID:', data?.id)
+  }
+}

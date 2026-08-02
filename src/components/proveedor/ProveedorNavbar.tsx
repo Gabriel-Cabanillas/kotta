@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { label: 'Mis órdenes', href: ''          },
   { label: 'Historial',   href: '/ordenes'  },
   { label: 'Reportes',    href: '/reportes' },
+  {label: 'Configuración', href: '/configuracion'}
 ]
 
 export default function ProveedorNavbar({

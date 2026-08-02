@@ -97,6 +97,31 @@ enum AmenityStatus {
   MANTENIMIENTO
 }
 
+enum TipoCuentaConectada {
+  CONDOMINIO
+  PROVEEDOR
+}
+
+enum TipoCargo {
+  MASIVO
+  GRUPO
+  INDIVIDUAL
+}
+
+enum EstadoPago {
+  PENDIENTE
+  PROCESANDO
+  PAGADO
+  FALLIDO
+  EN_DISPUTA
+  REEMBOLSADO
+}
+
+enum TipoOperacionPago {
+  CARGO
+  TRANSFERENCIA
+}
+
 // ─── Organization ────────────────────────────────────────────
 
 model Organization {
@@ -114,6 +139,9 @@ model Organization {
   payments   Payment[]
   accessLogs AccessLog[]
   amenities  Amenity[]
+  cuentaConectada CuentaConectada?
+  cargos Cargo[]
+  pagos  Pago[]
 
   @@map("organizations")
 }
@@ -142,6 +170,12 @@ model User {
   accessLogsGuard    AccessLog[] @relation("GuardLog")
   reservations       AmenityReservation[]
   sessions           Session[]
+  cuentaConectada CuentaConectada?
+  cargosCreados       Cargo[]
+  cargosDestinatario  CargoDestinatario[]
+  pagosComoVecino     Pago[] @relation("PagosComoVecino")
+  pagosComoProveedor  Pago[] @relation("PagosComoProveedor")
+  notifications Notification[]
 
   @@index([orgId, role])
   @@map("users")
@@ -200,6 +234,7 @@ model WorkOrder {
   provider   User      @relation("AssignedTo", fields: [providerId], references: [id])
 
   accessLog  AccessLog?
+  pagos      Pago[]
 
   @@index([orgId, createdAt])
   @@map("work_orders")
@@ -365,4 +400,124 @@ enum CodeType {
   REGISTRO
   LOGIN
   INVITACION
+}
+
+
+// ─── Flujo de Stripe ────────────────────────────────────────
+model CuentaConectada {
+  id                String              @id @default(cuid())
+  tipo              TipoCuentaConectada
+  stripeAccountId   String              @unique
+  chargesEnabled    Boolean             @default(false)
+  payoutsEnabled    Boolean             @default(false)
+  detailsSubmitted  Boolean             @default(false)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  orgId       String?       @unique
+  org         Organization? @relation(fields: [orgId], references: [id])
+
+  proveedorId String? @unique
+  proveedor   User?   @relation(fields: [proveedorId], references: [id])
+
+  @@map("cuentas_conectadas")
+}
+
+model WebhookEvent {
+  id            String   @id @default(cuid())
+  stripeEventId String   @unique
+  tipo          String
+  procesadoEn   DateTime @default(now())
+
+  @@map("webhook_events")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  tipo      String
+  titulo    String
+  mensaje   String
+  leida     Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  cargoId String?
+  cargo   Cargo?  @relation(fields: [cargoId], references: [id])
+
+  @@index([userId, leida])
+  @@map("notifications")
+}
+
+// ─── Módulo de pagos (Fase 2) ──────────────────────────────────
+
+model Cargo {
+  id            String              @id @default(cuid())
+  concepto      String
+  monto         Decimal
+  fechaLimite   DateTime
+  tipo          TipoCargo
+  createdAt     DateTime            @default(now())
+
+  orgId         String
+  org           Organization        @relation(fields: [orgId], references: [id])
+
+  creadoPorId   String
+  creadoPor     User                @relation(fields: [creadoPorId], references: [id])
+
+  destinatarios CargoDestinatario[]
+  pagos         Pago[]
+  notificaciones Notification[]
+
+  @@map("cargos")
+}
+
+model CargoDestinatario {
+  id          String @id @default(cuid())
+  cargoId     String
+  cargo       Cargo  @relation(fields: [cargoId], references: [id])
+
+  viviendaId  String
+  vivienda    User   @relation(fields: [viviendaId], references: [id])
+
+  @@unique([cargoId, viviendaId])
+  @@map("cargo_destinatarios")
+}
+
+model Pago {
+  id                     String            @id @default(cuid())
+  monto                  Decimal
+  moneda                 String            @default("MXN")
+  estado                 EstadoPago
+  tipoOperacion          TipoOperacionPago
+  stripePaymentIntentId  String?           @unique
+  stripeTransferId       String?           @unique
+  referencia             String?
+  comprobanteUrl         String?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+
+  cargoId     String?
+  cargo       Cargo?  @relation(fields: [cargoId], references: [id])
+
+  vecinoId    String?
+  vecino      User?   @relation("PagosComoVecino", fields: [vecinoId], references: [id])
+
+  proveedorId String?
+  proveedor   User?   @relation("PagosComoProveedor", fields: [proveedorId], references: [id])
+
+  workOrderId String?
+  workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  // CARGO conserva workOrderId en NULL, por lo que este unique permite un solo
+  // pago por orden de trabajo sin bloquear los cobros a vecinos.
+  @@unique([workOrderId])
+  // Fase 3 conserva vecinoId en NULL para TRANSFERENCIA, por lo que este unique
+  // protege los CARGO sin bloquear los pagos a proveedores actuales.
+  @@unique([cargoId, vecinoId])
+  @@map("pagos")
 }

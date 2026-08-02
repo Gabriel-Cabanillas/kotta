@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import ConfiguracionForm from '@/components/admin/ConfiguracionForm'
 
 export default async function ConfiguracionPage({ params }: { params: { coto: string } }) {
@@ -8,13 +9,18 @@ export default async function ConfiguracionPage({ params }: { params: { coto: st
   if (user.role !== 'ADMIN') redirect('/dashboard')
   if (user.org?.slug !== params.coto) redirect('/dashboard')
 
+  const cuentaConectada = await prisma.cuentaConectada.findUnique({
+    where: { orgId: user.org!.id },
+    select: { payoutsEnabled: true, detailsSubmitted: true },
+  })
+
   return (
     <div>
       <div className="mb-6">
         <h1 className="font-display text-2xl text-[#0F1F34] mb-1">Configuración</h1>
         <p className="text-sm text-[#6B7A99]">Datos generales del condominio</p>
       </div>
-      <ConfiguracionForm org={user.org as any} />
+      <ConfiguracionForm org={user.org as any} cuentaConectada={cuentaConectada} />
     </div>
   )
 }

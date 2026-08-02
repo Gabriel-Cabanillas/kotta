@@ -11,8 +11,6 @@ export default async function PagosPage({ params }: { params: { coto: string } }
   if (user.role !== 'ADMIN') redirect('/dashboard')
   if (user.org?.slug !== params.coto) redirect('/dashboard')
 
-  const now = new Date()
-
   return (
     <div>
       <div className="mb-6">
@@ -23,8 +21,6 @@ export default async function PagosPage({ params }: { params: { coto: string } }
       <Suspense fallback={<PagosListSkeleton />}>
         <PagosData
           orgId={user.orgId!}
-          mesActual={now.getMonth() + 1}
-          anioActual={now.getFullYear()}
         />
       </Suspense>
     </div>
@@ -32,12 +28,34 @@ export default async function PagosPage({ params }: { params: { coto: string } }
 }
 
 async function PagosData({
-  orgId, mesActual, anioActual,
-}: { orgId: string; mesActual: number; anioActual: number }) {
-  const [pagos, vecinos] = await Promise.all([
-    prisma.payment.findMany({
-      where: { orgId }, orderBy: [{ year: 'desc' }, { month: 'desc' }],
-      include: { user: true },
+  orgId,
+}: { orgId: string }) {
+  const [cargos, vecinos] = await Promise.all([
+    prisma.cargo.findMany({
+      where: { orgId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        destinatarios: {
+          include: {
+            vivienda: {
+              select: { id: true, name: true, houseNumber: true },
+            },
+          },
+        },
+        // Se ordenan todos los pagos del Cargo para derivar, por vivienda,
+        // el intento mÃ¡s reciente. Prisma no permite correlacionar este
+        // include con cada destinatario de forma dinÃ¡mica.
+        pagos: {
+          where: { tipoOperacion: 'CARGO' },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            vecinoId: true,
+            estado: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
     }),
     prisma.user.findMany({
       where: { orgId, role: 'VECINO', isActive: true }, orderBy: { name: 'asc' },
@@ -46,11 +64,8 @@ async function PagosData({
 
   return (
     <PagosList
-      pagos={pagos as any}
+      cargos={cargos as any}
       vecinos={vecinos as any}
-      orgId={orgId}
-      mesActual={mesActual}
-      anioActual={anioActual}
     />
   )
 }

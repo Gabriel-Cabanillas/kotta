@@ -6,6 +6,11 @@
  * /api/usuarios/crear y /api/usuarios/toggle.
  * Existe para que el ADMIN administre los usuarios de su coto desde la
  * arquitectura multi-rol del SaaS.
+ *
+ * Módulo de pagos (Fase 1 — sección 4.3): en la pestaña Proveedores se
+ * muestra, solo lectura, el estado de su CuentaConectada de Stripe.
+ * El admin NO puede editar estos datos desde aquí — eso vive en el propio
+ * panel del proveedor (ProveedorCuentaPago.tsx).
  */
 
 // Ya se rediseño
@@ -24,6 +29,15 @@ type User = {
   role: string
 }
 
+// Estado de la CuentaConectada (Stripe) de un proveedor.
+// Se deriva de CuentaConectada.payoutsEnabled / detailsSubmitted.
+// Si el proveedor todavía no tiene registro en CuentaConectada, la key
+// simplemente no existe en el record — se trata igual que "pendiente".
+type CuentaPagoEstado = {
+  payoutsEnabled: boolean
+  detailsSubmitted: boolean
+}
+
 type Tab = 'VECINO' | 'PROVEEDOR' | 'GUARDIA'
 
 // Jerarquía visual por rol: Vecino (relleno negro) > Proveedor (contorno) > Guardia (silenciado).
@@ -34,18 +48,41 @@ const TAB_CONFIG: Record<Tab, { label: string; avatar: string }> = {
   GUARDIA:   { label: 'Guardias',    avatar: 'bg-neutral-100 text-neutral-400' },
 }
 
+// Config visual del badge de cuenta de pago, según estado de CuentaConectada.
+function getCuentaPagoBadge(estado: CuentaPagoEstado | undefined) {
+  if (estado?.payoutsEnabled) {
+    return {
+      label: 'Listo para recibir pagos',
+      className: 'bg-success/10 text-success',
+    }
+  }
+  if (estado?.detailsSubmitted) {
+    return {
+      label: 'En revisión',
+      className: 'bg-warning/10 text-[#B8860B]',
+    }
+  }
+  return {
+    label: 'Pendiente de configurar',
+    className: 'bg-neutral-100 text-neutral-400',
+  }
+}
+
 export default function UsuariosList({
   vecinos,
   proveedores,
   guardias,
   orgId,
   coto,
+  cuentasPago = {},
 }: {
   vecinos: User[]
   proveedores: User[]
   guardias: User[]
   orgId: string
   coto: string
+  // Record<proveedorId, CuentaPagoEstado> — solo aplica a la pestaña PROVEEDOR.
+  cuentasPago?: Record<string, CuentaPagoEstado>
 }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<Tab>('VECINO')
@@ -165,10 +202,14 @@ export default function UsuariosList({
           <div className="divide-y divide-neutral-100">
             {users[activeTab].map((u) => {
               const cfg = TAB_CONFIG[activeTab]
+              const pagoBadge = activeTab === 'PROVEEDOR'
+                ? getCuentaPagoBadge(cuentasPago[u.id])
+                : null
+
               return (
                 <div
                   key={u.id}
-                  className="flex items-center justify-between px-6 py-4 hover:bg-black/[0.015] transition-colors"
+                  className="flex items-center justify-between px-6 py-4 hover:bg-black/[0.015] transition-colors flex-wrap gap-y-3"
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.avatar}`}>
@@ -186,6 +227,19 @@ export default function UsuariosList({
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
+                    {pagoBadge && (
+                      <span
+                        className={`text-xs font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 ${pagoBadge.className}`}
+                        title="Estado de cuenta de pago (Stripe) — solo lectura. Se edita desde el panel del proveedor."
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+                          <rect x="3" y="10" width="18" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.75"/>
+                          <path d="M3 10l9-6 9 6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M7 14v3M12 14v3M17 14v3" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
+                        </svg>
+                        {pagoBadge.label}
+                      </span>
+                    )}
                     <span
                       className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                         u.isActive
