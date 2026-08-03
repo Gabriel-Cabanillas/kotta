@@ -1,6 +1,11 @@
 'use client'
 
 /**
+ * ADVERTENCIA: componente huérfano, no usado por ningún flujo activo.
+ * Conserva el patrón stripeAccount anterior y no es compatible con Separate Charges.
+ */
+
+/**
  * Lista de cargos del vecino con su estado y acceso al modal de pago.
  * Se relaciona con app/[coto]/vecino/pagos/page.tsx y PagarCargoModal.tsx.
  * Existe para separar la consulta a Prisma (server) de la interactividad

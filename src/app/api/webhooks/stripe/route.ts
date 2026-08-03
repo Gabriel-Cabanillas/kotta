@@ -1,8 +1,7 @@
 /**
  * Endpoint que recibe los eventos (webhooks) que Stripe envía a Kotta.
  * Se relaciona con lib/stripe.ts, el modelo WebhookEvent de Prisma,
- * y con la lógica de cuentas conectadas, cargos y transferencias
- * que se agregará en fases posteriores.
+ * y con la lógica de cuentas conectadas, cargos y transferencias.
  * Existe para mantener sincronizado el estado de Kotta con el de Stripe
  * (pagos confirmados, cuentas verificadas, transferencias, etc.)
  */
@@ -69,11 +68,6 @@ export async function POST(req: Request) {
     case 'payment_intent.succeeded': {
       const paymentIntent = event.data.object as Stripe.PaymentIntent
 
-      // Como estos son Direct Charges, el PaymentIntent vive en la cuenta
-      // conectada del condominio. Stripe incluye esa cuenta en `event.account`
-      // cuando el webhook está configurado para escuchar eventos de cuentas conectadas.
-      const cuentaConectadaId = event.account
-
       const comprobanteUrl =
         typeof paymentIntent.latest_charge === 'string'
           ? null // el charge expandido no viene por defecto; se puede resolver con stripe.charges.retrieve si se necesita la URL del recibo
@@ -90,7 +84,7 @@ export async function POST(req: Request) {
         // No debería pasar en flujo normal (el Pago se crea antes de confirmar
         // el PaymentIntent), pero lo dejamos registrado para investigar si ocurre.
         console.warn(
-          `payment_intent.succeeded sin Pago correspondiente: ${paymentIntent.id} (cuenta ${cuentaConectadaId})`
+          `payment_intent.succeeded sin Pago correspondiente: ${paymentIntent.id}`
         )
         break
       }
@@ -137,7 +131,69 @@ export async function POST(req: Request) {
       break
     }
 
-    // TODO Fase 3: 'transfer.created' / 'transfer.failed' -> actualizar Pago (tipo TRANSFERENCIA)
+    case 'transfer.created': {
+      const transfer = event.data.object as Stripe.Transfer
+      const distribucionId = transfer.metadata.distribucionId
+
+      // Si el webhook llega antes de que el endpoint guarde stripeTransferId,
+      // el identificador incluido por Kotta en metadata permite resolver la
+      // distribución reservada sin crear un registro duplicado.
+      const distribucion = await prisma.distribucionPago.findFirst({
+        where: {
+          OR: [
+            { stripeTransferId: transfer.id },
+            ...(distribucionId ? [{ id: distribucionId }] : []),
+          ],
+        },
+        select: { id: true, estado: true },
+      })
+
+      if (!distribucion) {
+        console.warn(`transfer.created sin DistribucionPago correspondiente: ${transfer.id}`)
+        break
+      }
+
+      // El endpoint ya la marca PAGADO al recibir una respuesta exitosa de
+      // Stripe. Esta confirmación es idempotente y no duplica ningún efecto.
+      if (distribucion.estado !== 'PAGADO') {
+        await prisma.distribucionPago.update({
+          where: { id: distribucion.id },
+          data: {
+            stripeTransferId: transfer.id,
+            estado: 'PAGADO',
+          },
+        })
+      }
+      break
+    }
+
+    case 'transfer.reversed': {
+      const transfer = event.data.object as Stripe.Transfer
+      const distribucionId = transfer.metadata.distribucionId
+      const distribucion = await prisma.distribucionPago.findFirst({
+        where: {
+          OR: [
+            { stripeTransferId: transfer.id },
+            ...(distribucionId ? [{ id: distribucionId }] : []),
+          ],
+        },
+        select: { id: true, estado: true },
+      })
+
+      if (!distribucion) {
+        console.warn(`transfer.reversed sin DistribucionPago correspondiente: ${transfer.id}`)
+        break
+      }
+
+      if (distribucion.estado !== 'REEMBOLSADO') {
+        await prisma.distribucionPago.update({
+          where: { id: distribucion.id },
+          data: { stripeTransferId: transfer.id, estado: 'REEMBOLSADO' },
+        })
+      }
+      break
+    }
+
     default:
       console.log(`Evento de Stripe recibido sin manejar todavía: ${event.type}`)
   }

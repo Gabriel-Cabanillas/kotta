@@ -193,8 +193,8 @@ export default function ConfiguracionForm({ org, cuentaConectada }: { org: Org; 
 
         <p className="text-xs text-neutral-400 mb-5">
           {cuentaConectada?.payoutsEnabled
-            ? 'Tu cuenta está lista — los cobros de cuotas y mantenimiento se depositan aquí directamente.'
-            : 'Conecta la cuenta bancaria del condominio para recibir los cobros de cuotas y mantenimiento directamente.'}
+            ? 'Tu cuenta está lista para recibir las transferencias de saldo solicitadas desde Kotta.'
+            : 'Conecta la cuenta bancaria del condominio para poder recibir transferencias de saldo desde Kotta.'}
         </p>
 
         {mostrarFormularioPago ? (

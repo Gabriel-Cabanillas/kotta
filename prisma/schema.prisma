@@ -122,6 +122,11 @@ enum TipoOperacionPago {
   TRANSFERENCIA
 }
 
+enum TipoDestino {
+  CONDOMINIO
+  PROVEEDOR
+}
+
 // ─── Organization ────────────────────────────────────────────
 
 model Organization {
@@ -142,6 +147,7 @@ model Organization {
   cuentaConectada CuentaConectada?
   cargos Cargo[]
   pagos  Pago[]
+  distribucionesPago DistribucionPago[]
 
   @@map("organizations")
 }
@@ -235,6 +241,7 @@ model WorkOrder {
 
   accessLog  AccessLog?
   pagos      Pago[]
+  distribucionesPago DistribucionPago[]
 
   @@index([orgId, createdAt])
   @@map("work_orders")
@@ -491,6 +498,7 @@ model Pago {
   moneda                 String            @default("MXN")
   estado                 EstadoPago
   tipoOperacion          TipoOperacionPago
+  enPlataforma           Boolean           @default(true)
   stripePaymentIntentId  String?           @unique
   stripeTransferId       String?           @unique
   referencia             String?
@@ -513,6 +521,8 @@ model Pago {
   workOrderId String?
   workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
 
+  distribucionesOrigen DistribucionPago[] @relation("PagoOrigenDistribuciones")
+
   // CARGO conserva workOrderId en NULL, por lo que este unique permite un solo
   // pago por orden de trabajo sin bloquear los cobros a vecinos.
   @@unique([workOrderId])
@@ -520,4 +530,28 @@ model Pago {
   // protege los CARGO sin bloquear los pagos a proveedores actuales.
   @@unique([cargoId, vecinoId])
   @@map("pagos")
+}
+
+model DistribucionPago {
+  id                  String       @id @default(cuid())
+  pagoOrigenId        String?
+  pagoOrigen          Pago?        @relation("PagoOrigenDistribuciones", fields: [pagoOrigenId], references: [id])
+  destino             TipoDestino
+  cuentaConectadaId   String
+  monto               Decimal
+  estado              EstadoPago
+  stripeTransferId    String?      @unique
+  sourceTransactionId String?
+  workOrderId         String?
+  workOrder           WorkOrder?   @relation(fields: [workOrderId], references: [id])
+  referencia          String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  orgId String
+  org   Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([workOrderId])
+  @@index([orgId])
+  @@map("distribuciones_pago")
 }

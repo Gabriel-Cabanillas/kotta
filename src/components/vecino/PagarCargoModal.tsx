@@ -1,6 +1,11 @@
 'use client'
 
 /**
+ * ADVERTENCIA: componente huérfano, no usado por ningún flujo activo.
+ * Conserva el patrón stripeAccount anterior y no es compatible con Separate Charges.
+ */
+
+/**
  * Modal de pago del vecino: llama a /api/pagos/vecino/pagar-cargo para obtener
  * el clientSecret del PaymentIntent (Direct Charge en la cuenta conectada del
  * condominio) y muestra el Payment Element de Stripe.

@@ -50,7 +50,11 @@ type Orden = {
     reportedBy: { name: string; houseNumber: string | null }
     photoUrl: string | null // ← Línea agregada/verificada
   }
-  provider: { name: string }
+  provider: {
+    name: string
+    cuentaConectada: { payoutsEnabled: boolean } | null
+  }
+  distribucionesPago: { estado: string }[]
 }
 
 export default function OrdenesList({
@@ -64,6 +68,8 @@ export default function OrdenesList({
   const [selected, setSelected]     = useState<Orden | null>(null)
   const [filterStatus, setFilter]   = useState('TODOS')
   const [loading, setLoading]       = useState(false)
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
   const [costInput, setCostInput]   = useState('')
   const [notesInput, setNotesInput] = useState('')
 
@@ -82,6 +88,31 @@ export default function OrdenesList({
     setSelected(orden)
     setCostInput(orden.cost ? String(orden.cost) : '')
     setNotesInput(orden.notes ?? '')
+    setPaymentError(null)
+  }
+
+  const handlePayProvider = async () => {
+    if (!selected) return
+    setPaymentLoading(true)
+    setPaymentError(null)
+    try {
+      const response = await fetch('/api/pagos/transferir-proveedor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ordenId: selected.id }),
+      })
+      const result = await response.json() as { error?: string }
+      if (!response.ok) {
+        setPaymentError(result.error ?? 'No fue posible pagar al proveedor')
+        return
+      }
+      setSelected(null)
+      router.refresh()
+    } catch {
+      setPaymentError('No fue posible comunicarse con el servidor. Intenta nuevamente.')
+    } finally {
+      setPaymentLoading(false)
+    }
   }
 
   const handleUpdateStatus = async (status: string) => {
@@ -370,6 +401,62 @@ export default function OrdenesList({
                   </button>
                 </div>
               )}
+
+              {/* Pago al proveedor: solo existe cuando la orden ya tiene un costo
+                  y fue completada. El backend vuelve a validar todas estas reglas. */}
+              {selected.status === 'COMPLETADA' && (() => {
+                const distribucion = selected.distribucionesPago[0]
+                const yaPagada = distribucion?.estado === 'PAGADO'
+                const cuentaLista = selected.provider.cuentaConectada?.payoutsEnabled === true
+                const tieneCosto = Number(selected.cost ?? 0) > 0
+                const motivoDeshabilitado = yaPagada
+                  ? 'Esta orden ya fue pagada'
+                  : !cuentaLista
+                    ? 'El proveedor aún no tiene una cuenta lista para recibir pagos'
+                    : !tieneCosto
+                      ? 'Registra un costo válido antes de pagar'
+                      : undefined
+
+                return (
+                  <div className="border-t border-neutral-100 pt-5">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-sm font-medium text-neutral-900">Pago al proveedor</p>
+                        <p className="text-xs text-neutral-400 mt-0.5">
+                          {yaPagada
+                            ? 'Transferencia registrada como pagada'
+                            : cuentaLista
+                              ? 'La transferencia se enviará a la cuenta conectada del proveedor'
+                              : 'El proveedor debe completar la configuración de su cuenta de pago'}
+                        </p>
+                      </div>
+                      {yaPagada && (
+                        <span className="text-xs font-medium px-2.5 py-1 rounded-full text-success bg-success/10">
+                          Pagado
+                        </span>
+                      )}
+                    </div>
+                    {paymentError && (
+                      <p className="mb-3 rounded-lg bg-danger/5 px-3 py-2 text-xs text-danger">
+                        {paymentError}
+                      </p>
+                    )}
+                    <button
+                      onClick={handlePayProvider}
+                      disabled={paymentLoading || Boolean(motivoDeshabilitado)}
+                      title={motivoDeshabilitado}
+                      className="btn-primary w-full py-3 text-sm justify-center disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {paymentLoading ? (
+                        <><Loader2 size={15} className="animate-spin" strokeWidth={2} /> Procesando pago...</>
+                      ) : yaPagada ? 'Pago realizado' : 'Pagar proveedor'}
+                    </button>
+                    {motivoDeshabilitado && !yaPagada && (
+                      <p className="mt-2 text-xs text-neutral-400">{motivoDeshabilitado}</p>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </div>

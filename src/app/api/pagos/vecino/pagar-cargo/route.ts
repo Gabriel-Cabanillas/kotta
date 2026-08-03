@@ -1,6 +1,6 @@
 /**
  * Crea o reutiliza el PaymentIntent para que un vecino pague un Cargo mediante
- * un Direct Charge sobre la cuenta conectada del condominio.
+ * un Separate Charge en la cuenta plataforma, asociable a distribuciones futuras.
  *
  * Se relaciona con Pago, Cargo, CargoDestinatario y CuentaConectada. Existe
  * para validar al destinatario, evitar cobros duplicados y reutilizar el mismo
@@ -90,8 +90,7 @@ export async function POST(req: Request) {
   if (paymentIntentId) {
     const intentExistente = await stripe.paymentIntents.retrieve(
       paymentIntentId,
-      {},
-      { stripeAccount: cuentaConectada.stripeAccountId }
+      {}
     )
 
     if (intentExistente.status !== 'succeeded' && intentExistente.status !== 'canceled') {
@@ -110,10 +109,10 @@ export async function POST(req: Request) {
         amount: montoCentavos,
         currency: 'mxn',
         automatic_payment_methods: { enabled: true },
+        transfer_group: `cargo-${pagoExistente.id}`,
         metadata: { cargoId: cargo.id, vecinoId: user.id, orgId: user.orgId },
       },
       {
-        stripeAccount: cuentaConectada.stripeAccountId,
         idempotencyKey: `pago-${pagoExistente.id}-${intentoAnteriorId}`,
       }
     )

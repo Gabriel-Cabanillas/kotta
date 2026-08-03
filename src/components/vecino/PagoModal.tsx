@@ -32,9 +32,7 @@ export default function PagoModal({ cargo, onClose }: { cargo: Cargo; onClose: (
         } else {
           setClientSecret(data.clientSecret)
           setStripePromise(
-            loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!, {
-              stripeAccount: data.stripeAccountId,
-            })
+            loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
           )
         }
       })

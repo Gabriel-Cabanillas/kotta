@@ -28,7 +28,21 @@ export default async function OrdenesPage({ params }: { params: { coto: string }
 async function OrdenesData({ orgId, coto }: { orgId: string; coto: string }) {
   const ordenes = await prisma.workOrder.findMany({
     where: { orgId }, orderBy: { createdAt: 'desc' },
-    include: { ticket: { include: { reportedBy: true } }, provider: true },
+    include: {
+      ticket: { include: { reportedBy: true } },
+      provider: {
+        include: {
+          cuentaConectada: {
+            select: { payoutsEnabled: true },
+          },
+        },
+      },
+      distribucionesPago: {
+        where: { destino: 'PROVEEDOR' },
+        select: { estado: true },
+        take: 1,
+      },
+    },
   })
 
   return <OrdenesList ordenes={ordenes as any} coto={coto} />
