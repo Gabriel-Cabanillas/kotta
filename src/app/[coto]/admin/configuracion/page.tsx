@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import ConfiguracionForm from '@/components/admin/ConfiguracionForm'
 import RetiroSaldoCondominio from '@/components/admin/RetiroSaldoCondominio'
+import { obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
 
 const ESTADOS_COMPROMETIDOS: Array<'PENDIENTE' | 'PROCESANDO' | 'PAGADO'> = [
   'PENDIENTE',
@@ -22,27 +23,35 @@ export default async function ConfiguracionPage({ params }: { params: { coto: st
   })
 
   const [cobros, distribuciones] = await Promise.all([
-    prisma.pago.aggregate({
+    prisma.pago.findMany({
       where: {
         orgId: user.org!.id,
         tipoOperacion: 'CARGO',
         estado: 'PAGADO',
         enPlataforma: true,
       },
-      _sum: { monto: true },
+      select: { monto: true, montoNeto: true },
     }),
-    prisma.distribucionPago.aggregate({
+    prisma.distribucionPago.findMany({
       where: {
         orgId: user.org!.id,
+        origenManual: false,
         estado: { in: ESTADOS_COMPROMETIDOS },
       },
-      _sum: { monto: true },
+      select: { monto: true, comisionEstimada: true },
     }),
   ])
   const saldoDisponible = Math.max(
     0,
-    Number(cobros._sum.monto ?? 0) - Number(distribuciones._sum.monto ?? 0)
+    cobros.reduce((total, cobro) => total + Number(cobro.montoNeto ?? cobro.monto), 0)
+      - distribuciones.reduce((total, distribucion) => total + Number(distribucion.monto) + Number(distribucion.comisionEstimada ?? 0), 0)
   )
+  const liquidezStripe = await obtenerLiquidezPlataformaMx().catch((error) => {
+    console.error('No fue posible consultar la liquidez de Stripe para el retiro:', error)
+    return null
+  })
+  const disponibleAhora = liquidezStripe ? Math.min(saldoDisponible, liquidezStripe.disponible) : null
+  const enLiquidacion = disponibleAhora === null ? null : Math.max(0, saldoDisponible - disponibleAhora)
 
   return (
     <div>
@@ -53,7 +62,9 @@ export default async function ConfiguracionPage({ params }: { params: { coto: st
       <ConfiguracionForm org={user.org as any} cuentaConectada={cuentaConectada} />
       <div className="mt-6 max-w-xl">
         <RetiroSaldoCondominio
-          saldoDisponible={saldoDisponible}
+          saldoContable={saldoDisponible}
+          disponibleAhora={disponibleAhora}
+          enLiquidacion={enLiquidacion}
           cuentaLista={cuentaConectada?.payoutsEnabled === true}
         />
       </div>

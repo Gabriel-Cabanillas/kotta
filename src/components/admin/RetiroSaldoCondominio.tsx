@@ -15,10 +15,14 @@ const moneda = new Intl.NumberFormat('es-MX', {
 })
 
 export default function RetiroSaldoCondominio({
-  saldoDisponible,
+  saldoContable,
+  disponibleAhora,
+  enLiquidacion,
   cuentaLista,
 }: {
-  saldoDisponible: number
+  saldoContable: number
+  disponibleAhora: number | null
+  enLiquidacion: number | null
   cuentaLista: boolean
 }) {
   const router = useRouter()
@@ -40,8 +44,12 @@ export default function RetiroSaldoCondominio({
       setError('Ingresa un monto positivo válido.')
       return
     }
-    if (montoNumero > saldoDisponible) {
-      setError('El monto no puede exceder el saldo disponible.')
+    if (disponibleAhora === null) {
+      setError('No fue posible verificar la disponibilidad actual con Stripe. Intenta nuevamente.')
+      return
+    }
+    if (montoNumero > disponibleAhora) {
+      setError(`Tienes ${moneda.format(disponibleAhora)} disponibles para retirar ahora. El resto de tu saldo (${moneda.format(enLiquidacion ?? 0)}) está en proceso de liquidación con Stripe y normalmente estará disponible en unos días.`)
       return
     }
 
@@ -86,14 +94,19 @@ export default function RetiroSaldoCondominio({
           </div>
         </div>
         <span className="text-xs font-medium text-success bg-success/10 px-2.5 py-1 rounded-full">
-          Disponible: {moneda.format(saldoDisponible)}
+          {disponibleAhora === null ? 'Disponibilidad sin verificar' : `Disponible ahora: ${moneda.format(disponibleAhora)}`}
         </span>
       </div>
 
       <p className="text-xs text-neutral-400 mb-5">
-        Este saldo contempla únicamente cobros confirmados en la plataforma y descuenta
-        transferencias ya comprometidas al condominio o a proveedores.
+        Saldo contable: {moneda.format(saldoContable)}. La disponibilidad puede variar por
+        liquidaciones, reembolsos o transferencias simultáneas de la plataforma.
       </p>
+      {enLiquidacion !== null && (
+        <p className="text-xs text-neutral-400 -mt-3 mb-5">
+          En proceso de liquidación (normalmente disponible en unos días): {moneda.format(enLiquidacion)}
+        </p>
+      )}
 
       {!cuentaLista ? (
         <div className="rounded-xl bg-red/5 border border-red/10 px-4 py-3 text-xs text-neutral-600">
@@ -109,7 +122,7 @@ export default function RetiroSaldoCondominio({
                 id="monto-retiro"
                 type="number"
                 min="0.01"
-                max={saldoDisponible}
+                max={disponibleAhora ?? undefined}
                 step="0.01"
                 inputMode="decimal"
                 value={monto}
@@ -117,7 +130,7 @@ export default function RetiroSaldoCondominio({
                   setSolicitudId(crypto.randomUUID())
                   setMonto(event.target.value)
                 }}
-                disabled={cargando}
+                disabled={cargando || disponibleAhora === null}
                 placeholder="0.00"
                 className="w-full px-2 py-2.5 text-sm text-neutral-900 outline-none rounded-xl"
               />
@@ -126,7 +139,7 @@ export default function RetiroSaldoCondominio({
           </div>
           <button
             type="submit"
-            disabled={cargando || saldoDisponible <= 0}
+            disabled={cargando || disponibleAhora === null || disponibleAhora <= 0}
             className="btn-primary py-2.5 px-5 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {cargando && <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2.5} />}

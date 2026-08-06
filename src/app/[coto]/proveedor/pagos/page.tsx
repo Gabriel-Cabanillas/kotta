@@ -129,6 +129,7 @@ export default async function ProveedorPagos({
               {distribuciones.map((distribucion) => {
                 const estado = ESTADO_CONFIG[distribucion.estado] ?? ESTADO_CONFIG.PENDIENTE
                 const ticket = distribucion.workOrder?.ticket
+                const esPagoExterno = distribucion.origenManual
 
                 return (
                   <div
@@ -152,12 +153,18 @@ export default async function ProveedorPagos({
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-4 flex-shrink-0">
-                      <p className="text-sm font-medium text-neutral-900">
-                        {moneda.format(Number(distribucion.monto))}
-                      </p>
+                      <div className="text-right">
+                        <p className="text-[11px] text-neutral-400">Recibiste</p>
+                        <p className="text-sm font-medium text-neutral-900">{moneda.format(Number(distribucion.monto))}</p>
+                      </div>
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${estado.clases}`}>
                         {estado.etiqueta}
                       </span>
+                      {esPagoExterno && (
+                        <span className="text-xs font-medium px-2.5 py-1 rounded-full text-neutral-600 bg-neutral-100">
+                          Pago externo
+                        </span>
+                      )}
                     </div>
                   </div>
                 )

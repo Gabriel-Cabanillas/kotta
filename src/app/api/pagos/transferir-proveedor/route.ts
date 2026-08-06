@@ -7,6 +7,8 @@ import { Prisma } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
+import { obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
+import { calcularComisionPayoutEstimada } from '@/lib/stripe/fees'
 import type Stripe from 'stripe'
 
 type StripeError = {
@@ -27,6 +29,11 @@ function numeroDeIntento(referencia: string | null) {
 
 function referenciaDeIntento(intentos: number, mensaje?: string) {
   return mensaje ? `intento:${intentos} | ${mensaje}` : `intento:${intentos}`
+}
+
+function mensajeDeDisponibilidad(disponibleAhora: number, enLiquidacion: number) {
+  const moneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
+  return `Tienes ${moneda.format(disponibleAhora)} disponibles para retirar ahora. El resto de tu saldo (${moneda.format(enLiquidacion)}) está en proceso de liquidación con Stripe y normalmente estará disponible en unos días.`
 }
 
 export async function POST(req: Request) {
@@ -58,6 +65,8 @@ export async function POST(req: Request) {
   if (!Number.isFinite(montoCentavos) || montoCentavos <= 0) {
     return Response.json({ error: 'La orden no tiene un costo válido para pagar' }, { status: 400 })
   }
+  const montoProveedor = montoCentavos / 100
+  const { comisionEstimada, totalDescontado } = calcularComisionPayoutEstimada(montoProveedor)
 
   const cuentaProveedor = await prisma.cuentaConectada.findUnique({
     where: { proveedorId: orden.providerId },
@@ -68,9 +77,23 @@ export async function POST(req: Request) {
     return Response.json({ error: 'El proveedor aún no tiene una cuenta lista para recibir pagos' }, { status: 400 })
   }
 
+  // Esta llamada de red ocurre antes de la reserva serializable. Nunca se
+  // expone este balance global: únicamente se usa como tope para el coto.
+  let liquidezStripe: Awaited<ReturnType<typeof obtenerLiquidezPlataformaMx>>
+  try {
+    liquidezStripe = await obtenerLiquidezPlataformaMx()
+  } catch (error) {
+    console.error('No fue posible verificar la liquidez de Stripe para el proveedor:', error)
+    return Response.json(
+      { error: 'No fue posible verificar la disponibilidad actual con Stripe. Intenta nuevamente.' },
+      { status: 503 }
+    )
+  }
+
   let reserva:
     | { tipo: 'LEGACY' }
     | { tipo: 'SIN_SALDO' }
+    | { tipo: 'SIN_DISPONIBILIDAD_STRIPE'; disponibleAhora: number; enLiquidacion: number }
     | { tipo: 'DISTRIBUCION'; distribucion: Awaited<ReturnType<typeof prisma.distribucionPago.findUnique>> }
     | null = null
 
@@ -101,6 +124,8 @@ export async function POST(req: Request) {
               data: {
                 estado: 'PENDIENTE',
                 referencia: referenciaDeIntento(siguienteIntento),
+                montoOriginal: montoProveedor,
+                comisionEstimada,
               },
             })
             return { tipo: 'DISTRIBUCION' as const, distribucion: reintentada }
@@ -112,27 +137,40 @@ export async function POST(req: Request) {
         // Todas las distribuciones comprometidas del coto, sin importar si su
         // destino es CONDOMINIO o PROVEEDOR, reducen el saldo disponible.
         const [cobros, distribuciones] = await Promise.all([
-          tx.pago.aggregate({
+          tx.pago.findMany({
             where: {
               orgId: user.orgId!,
               tipoOperacion: 'CARGO',
               estado: 'PAGADO',
               enPlataforma: true,
             },
-            _sum: { monto: true },
+            select: { monto: true, montoNeto: true },
           }),
-          tx.distribucionPago.aggregate({
+          tx.distribucionPago.findMany({
             where: {
               orgId: user.orgId!,
+              origenManual: false,
               estado: { in: ESTADOS_COMPROMETIDOS },
             },
-            _sum: { monto: true },
+            select: { monto: true, comisionEstimada: true },
           }),
         ])
 
-        const disponible = Number(cobros._sum.monto ?? 0) - Number(distribuciones._sum?.monto ?? 0)
-        if (Number(orden.cost) > disponible) {
+        const comprometido = distribuciones.reduce(
+          (total, distribucion) => total + Number(distribucion.monto) + Number(distribucion.comisionEstimada ?? 0),
+          0
+        )
+        const disponible = cobros.reduce((total, cobro) => total + Number(cobro.montoNeto ?? cobro.monto), 0) - comprometido
+        if (totalDescontado > disponible) {
           return { tipo: 'SIN_SALDO' as const }
+        }
+        const disponibleAhora = Math.min(Math.max(0, disponible), liquidezStripe.disponible)
+        if (totalDescontado > disponibleAhora) {
+          return {
+            tipo: 'SIN_DISPONIBILIDAD_STRIPE' as const,
+            disponibleAhora,
+            enLiquidacion: Math.max(0, disponible - disponibleAhora),
+          }
         }
 
         const distribucion = await tx.distribucionPago.create({
@@ -141,7 +179,9 @@ export async function POST(req: Request) {
             pagoOrigenId: null,
             destino: 'PROVEEDOR',
             cuentaConectadaId: cuentaProveedor.id,
-            monto: orden.cost!,
+            monto: montoProveedor,
+            montoOriginal: montoProveedor,
+            comisionEstimada,
             estado: 'PENDIENTE',
             workOrderId: orden.id,
             referencia: referenciaDeIntento(1),
@@ -176,6 +216,12 @@ export async function POST(req: Request) {
   }
   if (reserva.tipo === 'SIN_SALDO') {
     return Response.json({ error: 'El condominio no tiene saldo disponible suficiente para pagar esta orden' }, { status: 400 })
+  }
+  if (reserva.tipo === 'SIN_DISPONIBILIDAD_STRIPE') {
+    return Response.json(
+      { error: mensajeDeDisponibilidad(reserva.disponibleAhora, reserva.enLiquidacion) },
+      { status: 400 }
+    )
   }
 
   let distribucion = reserva.distribucion
@@ -217,7 +263,7 @@ export async function POST(req: Request) {
 
     if (stripeError.code === 'balance_insufficient') {
       return Response.json(
-        { error: 'No hay saldo disponible en la cuenta plataforma para pagar al proveedor' },
+        { error: 'La disponibilidad de Stripe cambió mientras se procesaba el pago. Intenta nuevamente para verificar el monto disponible ahora.' },
         { status: 400 }
       )
     }
@@ -240,5 +286,11 @@ export async function POST(req: Request) {
     },
   })
 
-  return Response.json({ transferId: transfer.id, estado: 'PAGADO' })
+  return Response.json({
+    transferId: transfer.id,
+    estado: 'PAGADO',
+    montoProveedor,
+    comisionEstimada,
+    totalDescontado,
+  })
 }

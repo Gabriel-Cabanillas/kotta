@@ -19,6 +19,10 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/sign-in')
 
+  // El equipo interno no pertenece a un coto; debe resolverse antes de la
+  // pantalla genérica de cuentas sin organización.
+  if (user.role === 'KOTTA_STAFF') redirect('/kotta-staff/conciliacion')
+
   if (!user.orgId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F7F9FC]">

@@ -28,6 +28,7 @@
     "prisma": "^7.5.0",
     "react": "^18",
     "react-dom": "^18",
+    "recharts": "^3.10.1",
     "resend": "^6.12.2",
     "stripe": "^22.3.2",
     "svix": "^1.89.0",

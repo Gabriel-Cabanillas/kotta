@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
+import { obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
 import type Stripe from 'stripe'
 
 type StripeError = {
@@ -28,6 +29,11 @@ function numeroDeIntento(referencia: string | null) {
 function referenciaDeRetiro(solicitudId: string, intento: number, mensaje?: string) {
   const base = `retiro:${solicitudId}|intento:${intento}`
   return mensaje ? `${base} | ${mensaje}` : base
+}
+
+function mensajeDeDisponibilidad(disponibleAhora: number, enLiquidacion: number) {
+  const moneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
+  return `Tienes ${moneda.format(disponibleAhora)} disponibles para retirar ahora. El resto de tu saldo (${moneda.format(enLiquidacion)}) está en proceso de liquidación con Stripe y normalmente estará disponible en unos días.`
 }
 
 export async function POST(req: Request) {
@@ -73,8 +79,22 @@ export async function POST(req: Request) {
     )
   }
 
+  // Stripe se consulta antes de abrir la transacción: el balance es global y solo
+  // se usa como tope físico junto con el saldo contable aislado del coto.
+  let liquidezStripe: Awaited<ReturnType<typeof obtenerLiquidezPlataformaMx>>
+  try {
+    liquidezStripe = await obtenerLiquidezPlataformaMx()
+  } catch (error) {
+    console.error('No fue posible verificar la liquidez de Stripe para el retiro:', error)
+    return Response.json(
+      { error: 'No fue posible verificar la disponibilidad actual con Stripe. Intenta nuevamente.' },
+      { status: 503 }
+    )
+  }
+
   let reserva:
     | { tipo: 'SIN_SALDO' }
+    | { tipo: 'SIN_DISPONIBILIDAD_STRIPE'; disponibleAhora: number; enLiquidacion: number }
     | { tipo: 'PAGADO' }
     | { tipo: 'REEMBOLSADO' }
     | { tipo: 'DISTRIBUCION'; distribucion: Awaited<ReturnType<typeof prisma.distribucionPago.findFirst>> }
@@ -111,27 +131,36 @@ export async function POST(req: Request) {
         }
 
         const [cobros, distribuciones] = await Promise.all([
-          tx.pago.aggregate({
+          tx.pago.findMany({
             where: {
               orgId: user.orgId!,
               tipoOperacion: 'CARGO',
               estado: 'PAGADO',
               enPlataforma: true,
             },
-            _sum: { monto: true },
+            select: { monto: true, montoNeto: true },
           }),
-          tx.distribucionPago.aggregate({
+          tx.distribucionPago.findMany({
             where: {
               orgId: user.orgId!,
+              origenManual: false,
               estado: { in: ESTADOS_COMPROMETIDOS },
             },
-            _sum: { monto: true },
+            select: { monto: true, comisionEstimada: true },
           }),
         ])
 
-        const disponible =
-          Number(cobros._sum.monto ?? 0) - Number(distribuciones._sum.monto ?? 0)
+        const disponible = cobros.reduce((total, cobro) => total + Number(cobro.montoNeto ?? cobro.monto), 0)
+          - distribuciones.reduce((total, distribucion) => total + Number(distribucion.monto) + Number(distribucion.comisionEstimada ?? 0), 0)
         if (montoNormalizado > disponible) return { tipo: 'SIN_SALDO' as const }
+        const disponibleAhora = Math.min(Math.max(0, disponible), liquidezStripe.disponible)
+        if (montoNormalizado > disponibleAhora) {
+          return {
+            tipo: 'SIN_DISPONIBILIDAD_STRIPE' as const,
+            disponibleAhora,
+            enLiquidacion: Math.max(0, disponible - disponibleAhora),
+          }
+        }
 
         const distribucion = await tx.distribucionPago.create({
           data: {
@@ -164,6 +193,12 @@ export async function POST(req: Request) {
   if (reserva.tipo === 'SIN_SALDO') {
     return Response.json(
       { error: 'El monto solicitado excede el saldo disponible en plataforma' },
+      { status: 400 }
+    )
+  }
+  if (reserva.tipo === 'SIN_DISPONIBILIDAD_STRIPE') {
+    return Response.json(
+      { error: mensajeDeDisponibilidad(reserva.disponibleAhora, reserva.enLiquidacion) },
       { status: 400 }
     )
   }
@@ -215,7 +250,7 @@ export async function POST(req: Request) {
 
     if (stripeError.code === 'balance_insufficient') {
       return Response.json(
-        { error: 'La cuenta plataforma no tiene saldo disponible para realizar el retiro' },
+        { error: 'La disponibilidad de Stripe cambió mientras se procesaba el retiro. Intenta nuevamente para verificar el monto disponible ahora.' },
         { status: 400 }
       )
     }
