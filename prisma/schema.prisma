@@ -22,6 +22,7 @@ datasource db {
 
 enum Role {
   SUPERADMIN
+  KOTTA_STAFF
   ADMIN
   VECINO
   PROVEEDOR
@@ -114,6 +115,7 @@ enum EstadoPago {
   PAGADO
   FALLIDO
   EN_DISPUTA
+  DISPUTA_PERDIDA
   REEMBOLSADO
 }
 
@@ -495,6 +497,11 @@ model CargoDestinatario {
 model Pago {
   id                     String            @id @default(cuid())
   monto                  Decimal
+  montoOriginal          Decimal           @default(0)
+  montoConRecargo        Decimal?
+  metodoPagoSeleccionado String?
+  stripeFeeAmount        Decimal?
+  montoNeto              Decimal?
   moneda                 String            @default("MXN")
   estado                 EstadoPago
   tipoOperacion          TipoOperacionPago
@@ -522,6 +529,7 @@ model Pago {
   workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
 
   distribucionesOrigen DistribucionPago[] @relation("PagoOrigenDistribuciones")
+  disputaStripe        DisputaStripe?
 
   // CARGO conserva workOrderId en NULL, por lo que este unique permite un solo
   // pago por orden de trabajo sin bloquear los cobros a vecinos.
@@ -532,6 +540,26 @@ model Pago {
   @@map("pagos")
 }
 
+/** Registro de auditoría de disputas de Stripe asociado a un único Pago. */
+model DisputaStripe {
+  id              String   @id @default(cuid())
+  pagoId          String   @unique
+  pago            Pago     @relation(fields: [pagoId], references: [id])
+  stripeDisputeId String   @unique
+  monto           Decimal
+  moneda          String
+  motivo          String
+  estadoStripe    String
+  fechaLimite     DateTime?
+  creadaEn        DateTime
+  cerradaEn       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([estadoStripe, fechaLimite])
+  @@map("disputas_stripe")
+}
+
 model DistribucionPago {
   id                  String       @id @default(cuid())
   pagoOrigenId        String?
@@ -539,9 +567,13 @@ model DistribucionPago {
   destino             TipoDestino
   cuentaConectadaId   String
   monto               Decimal
+  montoOriginal       Decimal      @default(0)
+  comisionEstimada    Decimal?
   estado              EstadoPago
   stripeTransferId    String?      @unique
   sourceTransactionId String?
+  origenManual        Boolean      @default(false)
+  notaManual          String?
   workOrderId         String?
   workOrder           WorkOrder?   @relation(fields: [workOrderId], references: [id])
   referencia          String?
@@ -554,4 +586,17 @@ model DistribucionPago {
   @@unique([workOrderId])
   @@index([orgId])
   @@map("distribuciones_pago")
+}
+
+model ConciliacionPayoutMensual {
+  id                    String   @id @default(cuid())
+  periodo               String   @unique
+  totalEstimadoCobrado  Decimal
+  totalRealFacturado    Decimal?
+  diferencia            Decimal?
+  estado                String   @default("PENDIENTE")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("conciliaciones_payout_mensual")
 }
