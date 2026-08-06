@@ -9,6 +9,8 @@
 'use client'
 
 import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import AsignarPagoForm from './AsignarPagoForm'
 
 type EstadoPago =
@@ -17,6 +19,7 @@ type EstadoPago =
   | 'PAGADO'
   | 'FALLIDO'
   | 'EN_DISPUTA'
+  | 'DISPUTA_PERDIDA'
   | 'REEMBOLSADO'
 
 type Vecino = {
@@ -33,7 +36,10 @@ type Cargo = {
   tipo: 'MASIVO' | 'GRUPO' | 'INDIVIDUAL'
   destinatarios: Array<{ vivienda: Vecino }>
   pagos: Array<{
+    id: string
     vecinoId: string | null
+    monto: unknown
+    montoConRecargo: unknown | null
     estado: EstadoPago
     createdAt: Date | string
     updatedAt: Date | string
@@ -46,6 +52,7 @@ const ESTADOS: Record<EstadoPago, { label: string; dot: string; badge: string }>
   PAGADO: { label: 'Pagado', dot: 'bg-success', badge: 'bg-success/10 text-success' },
   FALLIDO: { label: 'Fallido', dot: 'bg-danger', badge: 'bg-danger/10 text-danger' },
   EN_DISPUTA: { label: 'En disputa', dot: 'bg-orange-500', badge: 'bg-orange-50 text-orange-700' },
+  DISPUTA_PERDIDA: { label: 'Disputa perdida', dot: 'bg-danger', badge: 'bg-danger/10 text-danger' },
   REEMBOLSADO: { label: 'Reembolsado', dot: 'bg-neutral-400', badge: 'bg-neutral-100 text-neutral-600' },
 }
 
@@ -62,10 +69,42 @@ export default function PagosList({
   cargos: Cargo[]
   vecinos: Vecino[]
 }) {
+  const router = useRouter()
   const [filterStatus, setFilterStatus] = useState<'TODOS' | EstadoPago>('TODOS')
+  const [confirmandoPagoId, setConfirmandoPagoId] = useState<string | null>(null)
+  const [reembolsandoPagoId, setReembolsandoPagoId] = useState<string | null>(null)
+  const [errorReembolso, setErrorReembolso] = useState<string | null>(null)
 
   const estadoDeDestinatario = (cargo: Cargo, viviendaId: string): EstadoPago =>
     cargo.pagos.find((pago) => pago.vecinoId === viviendaId)?.estado ?? 'PENDIENTE'
+
+  const pagoDeDestinatario = (cargo: Cargo, viviendaId: string) =>
+    cargo.pagos.find((pago) => pago.vecinoId === viviendaId)
+
+  const reembolsar = async (pagoId: string) => {
+    setErrorReembolso(null)
+    setReembolsandoPagoId(pagoId)
+    try {
+      const respuesta = await fetch('/api/pagos/admin/reembolsar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pagoId }),
+      })
+      const datos = await respuesta.json() as { error?: string }
+      if (!respuesta.ok) {
+        setErrorReembolso(datos.error ?? 'No fue posible iniciar el reembolso.')
+        setReembolsandoPagoId(null)
+        return
+      }
+      setConfirmandoPagoId(null)
+      // El webhook confirma REEMBOLSADO; conservamos este estado visual hasta
+      // que el administrador recargue y reciba la actualización confirmada.
+      router.refresh()
+    } catch {
+      setErrorReembolso('No fue posible conectar con el servidor. Intenta nuevamente.')
+      setReembolsandoPagoId(null)
+    }
+  }
 
   const cargosFiltrados = cargos.filter((cargo) =>
     filterStatus === 'TODOS' || cargo.destinatarios.some(
@@ -122,21 +161,48 @@ export default function PagosList({
 
                 <div className="rounded-xl border border-neutral-100 divide-y divide-neutral-100">
                   {cargo.destinatarios.map(({ vivienda }) => {
-                    const estado = estadoDeDestinatario(cargo, vivienda.id)
+                    const pago = pagoDeDestinatario(cargo, vivienda.id)
+                    const estado = pago?.estado ?? 'PENDIENTE'
                     const config = ESTADOS[estado]
+                    const reembolsando = pago?.id === reembolsandoPagoId
+                    const montoReembolso = pago ? Number(pago.montoConRecargo ?? pago.monto) : 0
 
                     return (
-                      <div key={vivienda.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                        <div>
-                          <p className="text-sm text-neutral-900">{vivienda.name}</p>
-                          {vivienda.houseNumber && (
-                            <p className="text-xs text-neutral-400 mt-0.5">Casa {vivienda.houseNumber}</p>
-                          )}
+                      <div key={vivienda.id} className="px-4 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm text-neutral-900">{vivienda.name}</p>
+                            {vivienda.houseNumber && (
+                              <p className="text-xs text-neutral-400 mt-0.5">Casa {vivienda.houseNumber}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {estado === 'PAGADO' && pago && !reembolsando && (
+                              <button
+                                type="button"
+                                onClick={() => { setErrorReembolso(null); setConfirmandoPagoId(pago.id) }}
+                                className="rounded-lg border border-neutral-200 px-2.5 py-1 text-xs font-medium text-neutral-700 transition-colors hover:border-black hover:text-black"
+                              >
+                                Reembolsar
+                              </button>
+                            )}
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${reembolsando ? ESTADOS.PROCESANDO.badge : config.badge}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${reembolsando ? ESTADOS.PROCESANDO.dot : config.dot}`} />
+                              {reembolsando ? 'Procesando reembolso' : config.label}
+                            </span>
+                          </div>
                         </div>
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${config.badge}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
-                          {config.label}
-                        </span>
+                        {confirmandoPagoId === pago?.id && (
+                          <div className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                            <p className="text-xs text-neutral-600">Se reembolsarán {montoReembolso.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })} al vecino, incluido cualquier recargo de tarjeta.</p>
+                            <div className="mt-3 flex justify-end gap-2">
+                              <button type="button" onClick={() => setConfirmandoPagoId(null)} className="rounded-lg px-3 py-1.5 text-xs font-medium text-neutral-500 hover:text-black">Cancelar</button>
+                              <button type="button" onClick={() => reembolsar(pago.id)} className="rounded-lg bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800">Confirmar reembolso</button>
+                            </div>
+                          </div>
+                        )}
+                        {reembolsando && <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-blue-700"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Esperando confirmación de Stripe.</p>}
+                        {errorReembolso && (confirmandoPagoId === pago?.id || reembolsando) && <p className="mt-2 text-xs text-danger">{errorReembolso}</p>}
                       </div>
                     )
                   })}

@@ -219,3 +219,70 @@ export async function enviarNotificacionPagoFallido(
     console.log('✅ Notificación de pago fallido enviada, ID:', data?.id)
   }
 }
+
+/** Envía al vecino la confirmación de que Stripe completó su reembolso. */
+export async function enviarNotificacionPagoReembolsado(
+  email: string,
+  nombre: string,
+  concepto: string,
+  monto: number
+) {
+  const montoFormateado = monto.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+  const { data, error } = await resend.emails.send({
+    from: 'KOTTA <onboarding@resend.dev>',
+    to: email,
+    subject: `Reembolso confirmado: ${concepto}`,
+    html: `
+      <div style="font-family: 'DM Sans', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 24px; background: #F7F9FC;">
+        <div style="background: white; border-radius: 16px; padding: 40px; border: 1px solid #E2E8F0;">
+          <h1 style="color: #0F1F34; font-size: 22px; margin: 0 0 12px;">Hola, ${nombre}</h1>
+          <p style="color: #4A5568; font-size: 15px; margin: 0 0 24px;">Tu reembolso fue confirmado por Stripe.</p>
+          <div style="background: #F5F5F5; border-radius: 12px; padding: 24px;">
+            <p style="color: #6B7A99; font-size: 13px; margin: 0 0 4px;">${concepto}</p>
+            <p style="color: #1E3A5F; font-size: 28px; font-weight: bold; margin: 0;">${montoFormateado}</p>
+          </div>
+          <p style="color: #6B7A99; font-size: 13px; margin: 24px 0 0;">Tu banco puede tardar algunos días en reflejar el abono.</p>
+        </div>
+      </div>
+    `,
+  })
+
+  if (error) console.error('Error al enviar notificación de reembolso:', JSON.stringify(error, null, 2))
+  else console.log('Notificación de reembolso enviada, ID:', data?.id)
+}
+
+/** Avisa exclusivamente al equipo interno de Kotta sobre una nueva disputa. */
+export async function enviarNotificacionDisputaStripe(
+  email: string,
+  nombre: string,
+  datos: { coto: string; monto: number; moneda: string; motivo: string; fechaLimite: Date | null; stripeDisputeId: string }
+) {
+  const monto = new Intl.NumberFormat('es-MX', { style: 'currency', currency: datos.moneda.toUpperCase() }).format(datos.monto)
+  const fechaLimite = datos.fechaLimite
+    ? datos.fechaLimite.toLocaleDateString('es-MX', { dateStyle: 'long' })
+    : 'No informada por Stripe'
+  const enlaceStripe = `https://dashboard.stripe.com/disputes/${datos.stripeDisputeId}`
+
+  const { data, error } = await resend.emails.send({
+    from: 'KOTTA <onboarding@resend.dev>',
+    to: email,
+    subject: `Acción requerida: disputa por ${monto}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #F7F8FA;">
+        <div style="background: white; border-radius: 12px; padding: 32px; border: 1px solid #E5E5E5;">
+          <p style="color: #FD5F56; font-size: 12px; font-weight: bold; letter-spacing: 1px; margin: 0 0 12px;">KOTTA · INTERNO</p>
+          <h1 style="color: #171717; font-size: 22px; margin: 0 0 16px;">Nueva disputa de Stripe</h1>
+          <p style="color: #525252; font-size: 15px; line-height: 1.6;">Hola, ${nombre}. Stripe notificó una disputa para <strong>${datos.coto}</strong>.</p>
+          <div style="background: #FAFAFA; border-radius: 10px; padding: 18px; margin: 20px 0;">
+            <p style="color: #525252; margin: 0 0 8px;"><strong>Monto:</strong> ${monto}</p>
+            <p style="color: #525252; margin: 0 0 8px;"><strong>Motivo:</strong> ${datos.motivo}</p>
+            <p style="color: #525252; margin: 0;"><strong>Fecha límite para evidencia:</strong> ${fechaLimite}</p>
+          </div>
+          <a href="${enlaceStripe}" style="display: inline-block; background: #171717; color: white; text-decoration: none; padding: 12px 18px; border-radius: 8px; font-size: 14px; font-weight: bold;">Abrir caso en Stripe</a>
+        </div>
+      </div>
+    `,
+  })
+  if (error) console.error('Error al enviar notificación de disputa:', JSON.stringify(error, null, 2))
+  else console.log('Notificación de disputa enviada, ID:', data?.id)
+}

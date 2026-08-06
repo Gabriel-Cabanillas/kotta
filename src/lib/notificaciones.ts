@@ -12,6 +12,8 @@ import {
   enviarNotificacionCargo,
   enviarNotificacionPagoExitoso,
   enviarNotificacionPagoFallido,
+  enviarNotificacionPagoReembolsado,
+  enviarNotificacionDisputaStripe,
 } from '@/lib/email'
 
 export async function notificarCargoAVecinos(cargoId: string) {
@@ -127,4 +129,77 @@ export async function notificarPagoFallido(pagoId: string, motivo?: string | nul
   })
 
   await enviarNotificacionPagoFallido(pago.vecino.email, pago.vecino.name, concepto, monto, motivo ?? undefined)
+}
+
+/** Notifica al vecino cuando Stripe confirma el reembolso completo de su pago. */
+export async function notificarPagoReembolsado(pagoId: string) {
+  const pago = await prisma.pago.findUnique({
+    where: { id: pagoId },
+    include: {
+      cargo: true,
+      vecino: { select: { id: true, name: true, email: true } },
+    },
+  })
+  if (!pago?.vecino) return
+
+  const concepto = pago.cargo?.concepto ?? 'Pago'
+  const monto = Number(pago.montoConRecargo ?? pago.monto)
+  await prisma.notification.create({
+    data: {
+      userId: pago.vecino.id,
+      cargoId: pago.cargoId ?? undefined,
+      tipo: 'PAGO_REEMBOLSADO',
+      titulo: concepto,
+      mensaje: `Tu reembolso de $${monto.toLocaleString('es-MX')} MXN por "${concepto}" fue confirmado.`,
+    },
+  })
+  await enviarNotificacionPagoReembolsado(pago.vecino.email, pago.vecino.name, concepto, monto)
+}
+
+/**
+ * Notifica solo al equipo interno de Kotta cuando Stripe abre una disputa.
+ * La consulta es cross-org de forma intencional: jamás se expone a admins,
+ * vecinos ni proveedores de un condominio.
+ */
+export async function notificarDisputaAKottaStaff(stripeDisputeId: string) {
+  const disputa = await prisma.disputaStripe.findUnique({
+    where: { stripeDisputeId },
+    include: { pago: { include: { org: { select: { name: true } } } } },
+  })
+  if (!disputa) return
+
+  const staff = await prisma.user.findMany({
+    where: { role: 'KOTTA_STAFF', isActive: true },
+    select: { id: true, name: true, email: true },
+  })
+  if (staff.length === 0) {
+    console.warn(`Disputa ${stripeDisputeId} sin usuarios KOTTA_STAFF activos para notificar.`)
+    return
+  }
+
+  const monto = Number(disputa.monto)
+  const fechaLimite = disputa.fechaLimite
+    ? disputa.fechaLimite.toLocaleDateString('es-MX', { dateStyle: 'long' })
+    : 'sin fecha límite informada'
+  const mensaje = `Disputa de ${monto.toLocaleString('es-MX')} ${disputa.moneda.toUpperCase()} en ${disputa.pago.org.name}. Motivo: ${disputa.motivo}. Evidencia antes de ${fechaLimite}.`
+
+  await prisma.notification.createMany({
+    data: staff.map((usuario) => ({
+      userId: usuario.id,
+      tipo: 'DISPUTA_STRIPE',
+      titulo: `Disputa Stripe · ${disputa.pago.org.name}`,
+      mensaje,
+    })),
+  })
+
+  await Promise.all(staff.map((usuario) =>
+    enviarNotificacionDisputaStripe(usuario.email, usuario.name, {
+      coto: disputa.pago.org.name,
+      monto,
+      moneda: disputa.moneda,
+      motivo: disputa.motivo,
+      fechaLimite: disputa.fechaLimite,
+      stripeDisputeId: disputa.stripeDisputeId,
+    })
+  ))
 }

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { EstadoPago } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import CargosPendientes from '@/components/vecino/CargosPendientes'
@@ -37,8 +38,14 @@ export default async function VecinoPagos({ params }: { params: { coto: string }
     ...destinatario.cargo,
     ultimoPago: destinatario.cargo.pagos[0] ?? null,
   }))
-  const cargosPendientes = cargos.filter((cargo) => cargo.ultimoPago?.estado !== 'PAGADO')
-  const historialPagos = cargos.filter((cargo) => cargo.ultimoPago?.estado === 'PAGADO')
+  const esObligacionResuelta = (estado: EstadoPago | undefined) =>
+    estado === EstadoPago.PAGADO ||
+    estado === EstadoPago.REEMBOLSADO ||
+    estado === EstadoPago.EN_DISPUTA ||
+    estado === EstadoPago.DISPUTA_PERDIDA
+  const cargosPendientes = cargos.filter((cargo) => !esObligacionResuelta(cargo.ultimoPago?.estado))
+  const historialResoluciones = cargos.filter((cargo) => esObligacionResuelta(cargo.ultimoPago?.estado))
+  const historialPagos = historialResoluciones.filter((cargo) => cargo.ultimoPago?.estado === EstadoPago.PAGADO)
 
   const ahora = new Date()
   const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1)
@@ -52,7 +59,7 @@ export default async function VecinoPagos({ params }: { params: { coto: string }
     0
   )
   const cargosVencidos = cargos.filter(
-    (cargo) => new Date(cargo.fechaLimite) < ahora && cargo.ultimoPago?.estado !== 'PAGADO'
+    (cargo) => new Date(cargo.fechaLimite) < ahora && !esObligacionResuelta(cargo.ultimoPago?.estado)
   )
 
   return (
@@ -83,31 +90,36 @@ export default async function VecinoPagos({ params }: { params: { coto: string }
 
       <section className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-neutral-100">
-          <h2 className="text-sm font-medium text-neutral-900">Historial de pagos</h2>
+          <h2 className="text-sm font-medium text-neutral-900">Historial de cargos resueltos</h2>
         </div>
-        {historialPagos.length === 0 ? (
+        {historialResoluciones.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-neutral-400 text-sm">Aun no hay pagos confirmados.</p>
           </div>
         ) : (
           <div className="divide-y divide-neutral-100">
-            {historialPagos.map((cargo) => (
+            {historialResoluciones.map((cargo) => {
+              const reembolsado = cargo.ultimoPago?.estado === EstadoPago.REEMBOLSADO
+              const enDisputa = cargo.ultimoPago?.estado === EstadoPago.EN_DISPUTA
+              const disputaPerdida = cargo.ultimoPago?.estado === EstadoPago.DISPUTA_PERDIDA
+              return (
               <div key={cargo.id} className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-neutral-100/60 transition-colors">
                 <div>
                   <p className="text-sm font-medium text-neutral-900">{cargo.concepto}</p>
                   <p className="text-xs text-neutral-400 mt-0.5">
                     ${Number(cargo.monto).toLocaleString('es-MX')} MXN
-                    {' - Pagado el '}
+                    {reembolsado ? ' - Reembolsado el ' : ' - Pagado el '}
                     {new Date(cargo.ultimoPago!.updatedAt).toLocaleDateString('es-MX', {
                       day: 'numeric', month: 'short', year: 'numeric',
                     })}
                   </p>
                 </div>
-                <span className="text-xs font-medium px-2.5 py-1 rounded-full text-success bg-success/10">
-                  Pagado
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${reembolsado ? 'text-neutral-600 bg-neutral-100' : 'text-success bg-success/10'}`}>
+                    {reembolsado ? 'Reembolsado' : enDisputa ? 'En disputa' : disputaPerdida ? 'Disputa perdida' : 'Pagado'}
                 </span>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </section>
