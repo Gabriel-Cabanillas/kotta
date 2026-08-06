@@ -23,6 +23,7 @@ import {
   Loader2,
   type LucideIcon,
 } from 'lucide-react'
+import { calcularComisionPayoutEstimada } from '@/lib/stripe/fees'
 
 const STATUS_CONFIG: Record<
   string,
@@ -50,20 +51,37 @@ type Orden = {
     reportedBy: { name: string; houseNumber: string | null }
     photoUrl: string | null // ← Línea agregada/verificada
   }
-  provider: { name: string }
+  provider: {
+    name: string
+    id: string
+    cuentaConectada: { id: string; payoutsEnabled: boolean } | null
+  }
+  distribucionesPago: { estado: string; origenManual: boolean; notaManual: string | null }[]
 }
 
 export default function OrdenesList({
   ordenes,
   coto,
+  disponibleParaTransferirAhora,
+  saldoEnLiquidacion,
 }: {
   ordenes: Orden[]
   coto: string
+  disponibleParaTransferirAhora: number | null
+  saldoEnLiquidacion: number | null
 }) {
   const router = useRouter()
   const [selected, setSelected]     = useState<Orden | null>(null)
   const [filterStatus, setFilter]   = useState('TODOS')
   const [loading, setLoading]       = useState(false)
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [paymentConfirmationOpen, setPaymentConfirmationOpen] = useState(false)
+  const [manualOpen, setManualOpen] = useState(false)
+  const [manualMonto, setManualMonto] = useState('')
+  const [manualFecha, setManualFecha] = useState('')
+  const [manualNota, setManualNota] = useState('')
+  const [manualLoading, setManualLoading] = useState(false)
   const [costInput, setCostInput]   = useState('')
   const [notesInput, setNotesInput] = useState('')
 
@@ -82,6 +100,96 @@ export default function OrdenesList({
     setSelected(orden)
     setCostInput(orden.cost ? String(orden.cost) : '')
     setNotesInput(orden.notes ?? '')
+    setPaymentError(null)
+    setPaymentConfirmationOpen(false)
+    setManualOpen(false)
+    setManualMonto(orden.cost ? String(orden.cost) : '')
+    const hoy = new Date()
+    setManualFecha(`${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`)
+    setManualNota('')
+  }
+
+  const mensajeDeDisponibilidad = (disponible: number, enLiquidacion: number) =>
+    `Tienes ${disponible.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })} disponibles para retirar ahora. El resto de tu saldo (${enLiquidacion.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}) está en proceso de liquidación con Stripe y normalmente estará disponible en unos días.`
+
+  const abrirConfirmacionPagoProveedor = () => {
+    if (!selected) return
+    setPaymentError(null)
+    if (disponibleParaTransferirAhora === null) {
+      setPaymentError('No fue posible verificar la disponibilidad actual con Stripe. Intenta nuevamente.')
+      return
+    }
+    const { totalDescontado } = calcularComisionPayoutEstimada(Number(selected.cost ?? 0))
+    if (totalDescontado > disponibleParaTransferirAhora) {
+      setPaymentError(mensajeDeDisponibilidad(disponibleParaTransferirAhora, saldoEnLiquidacion ?? 0))
+      return
+    }
+    setPaymentConfirmationOpen(true)
+  }
+
+  const handlePayProvider = async () => {
+    if (!selected) return
+    if (disponibleParaTransferirAhora === null) {
+      setPaymentError('No fue posible verificar la disponibilidad actual con Stripe. Intenta nuevamente.')
+      return
+    }
+    const { totalDescontado } = calcularComisionPayoutEstimada(Number(selected.cost ?? 0))
+    if (totalDescontado > disponibleParaTransferirAhora) {
+      setPaymentError(mensajeDeDisponibilidad(disponibleParaTransferirAhora, saldoEnLiquidacion ?? 0))
+      setPaymentConfirmationOpen(false)
+      return
+    }
+    setPaymentLoading(true)
+    setPaymentError(null)
+    try {
+      const response = await fetch('/api/pagos/transferir-proveedor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ordenId: selected.id }),
+      })
+      const result = await response.json() as { error?: string }
+      if (!response.ok) {
+        setPaymentError(result.error ?? 'No fue posible pagar al proveedor')
+        return
+      }
+      setSelected(null)
+      setPaymentConfirmationOpen(false)
+      router.refresh()
+    } catch {
+      setPaymentError('No fue posible comunicarse con el servidor. Intenta nuevamente.')
+    } finally {
+      setPaymentLoading(false)
+    }
+  }
+
+  const handleRegisterManualPayment = async () => {
+    if (!selected) return
+    setManualLoading(true)
+    setPaymentError(null)
+    try {
+      const response = await fetch('/api/pagos/registrar-pago-manual-proveedor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          proveedorId: selected.provider.id,
+          ordenId: selected.id,
+          monto: Number(manualMonto),
+          fechaPago: manualFecha,
+          nota: manualNota,
+        }),
+      })
+      const result = await response.json() as { error?: string }
+      if (!response.ok) {
+        setPaymentError(result.error ?? 'No fue posible registrar el pago externo')
+        return
+      }
+      setSelected(null)
+      router.refresh()
+    } catch {
+      setPaymentError('No fue posible comunicarse con el servidor. Intenta nuevamente.')
+    } finally {
+      setManualLoading(false)
+    }
   }
 
   const handleUpdateStatus = async (status: string) => {
@@ -370,6 +478,110 @@ export default function OrdenesList({
                   </button>
                 </div>
               )}
+
+              {/* Pago al proveedor: solo existe cuando la orden ya tiene un costo
+                  y fue completada. El backend vuelve a validar todas estas reglas. */}
+              {selected.status === 'COMPLETADA' && (() => {
+                const distribucion = selected.distribucionesPago[0]
+                const yaPagada = distribucion?.estado === 'PAGADO'
+                const esPagoExterno = distribucion?.origenManual === true
+                const cuentaLista = selected.provider.cuentaConectada?.payoutsEnabled === true
+                const cuentaRegistrada = selected.provider.cuentaConectada !== null
+                const tieneCosto = Number(selected.cost ?? 0) > 0
+                const estimadoPayout = calcularComisionPayoutEstimada(Number(selected.cost ?? 0))
+                const motivoDeshabilitado = yaPagada
+                  ? 'Esta orden ya fue pagada'
+                  : !cuentaLista
+                    ? 'El proveedor aún no tiene una cuenta lista para recibir pagos'
+                    : !tieneCosto
+                      ? 'Registra un costo válido antes de pagar'
+                      : undefined
+
+                return (
+                  <div className="border-t border-neutral-100 pt-5">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-sm font-medium text-neutral-900">Pago al proveedor</p>
+                        <p className="text-xs text-neutral-400 mt-0.5">
+                          {yaPagada
+                            ? esPagoExterno
+                              ? 'Pago externo registrado fuera de Kotta'
+                              : 'Transferencia registrada como pagada'
+                            : cuentaLista
+                              ? 'La transferencia se enviará a la cuenta conectada del proveedor'
+                              : 'El proveedor debe completar la configuración de su cuenta de pago'}
+                        </p>
+                      </div>
+                      {yaPagada && (
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${esPagoExterno ? 'text-neutral-600 bg-neutral-100' : 'text-success bg-success/10'}`}>
+                          {esPagoExterno ? 'Pago externo' : 'Pagado'}
+                        </span>
+                      )}
+                    </div>
+                    {paymentError && (
+                      <p className="mb-3 rounded-lg bg-danger/5 px-3 py-2 text-xs text-danger">
+                        {paymentError}
+                      </p>
+                    )}
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <button
+                        onClick={abrirConfirmacionPagoProveedor}
+                        disabled={paymentLoading || Boolean(motivoDeshabilitado)}
+                        title={motivoDeshabilitado}
+                        className="btn-primary py-3 text-sm justify-center disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {paymentLoading ? (
+                          <><Loader2 size={15} className="animate-spin" strokeWidth={2} /> Procesando pago...</>
+                        ) : yaPagada ? 'Pago realizado' : 'Pagar proveedor'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setManualOpen((abierto) => !abierto)}
+                        disabled={yaPagada || !cuentaRegistrada}
+                        title={!cuentaRegistrada ? 'El proveedor no tiene una cuenta de pago registrada' : undefined}
+                        className="btn-ghost py-3 text-sm justify-center disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Registrar pago manual (externo)
+                      </button>
+                    </div>
+                    {motivoDeshabilitado && !yaPagada && (
+                      <p className="mt-2 text-xs text-neutral-400">{motivoDeshabilitado}</p>
+                    )}
+                    {paymentConfirmationOpen && !yaPagada && cuentaLista && tieneCosto && (
+                      <div className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50/60 p-4">
+                        <p className="text-xs font-medium uppercase tracking-[0.04em] text-neutral-400">Confirmar pago</p>
+                        <div className="mt-3 space-y-2 text-sm">
+                          <div className="flex items-center justify-between gap-4"><span className="text-neutral-600">Monto a pagar al proveedor</span><span className="font-medium text-neutral-900">${estimadoPayout.montoProveedor.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                          <div className="flex items-center justify-between gap-4"><span className="text-neutral-600">Comisión estimada de Stripe (payout)</span><span className="font-medium text-neutral-900">${estimadoPayout.comisionEstimada.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                          <div className="flex items-center justify-between gap-4 border-t border-neutral-200 pt-2"><span className="font-medium text-neutral-900">Total a descontar de tu saldo disponible</span><span className="font-medium text-neutral-900">${estimadoPayout.totalDescontado.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                        </div>
+                        <p className="mt-3 text-xs leading-5 text-neutral-500">Este es un estimado de la comisión de Stripe. Se concilia mensualmente contra el costo real.</p>
+                        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                          <button type="button" onClick={() => setPaymentConfirmationOpen(false)} disabled={paymentLoading} className="btn-ghost py-2.5 text-sm justify-center">Cancelar</button>
+                          <button type="button" onClick={handlePayProvider} disabled={paymentLoading} className="btn-primary py-2.5 text-sm justify-center disabled:opacity-50">{paymentLoading ? 'Procesando...' : `Confirmar pago por $${estimadoPayout.totalDescontado.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</button>
+                        </div>
+                      </div>
+                    )}
+                    {!cuentaRegistrada && !yaPagada && (
+                      <p className="mt-2 text-xs text-neutral-400">Registra primero la cuenta de pago del proveedor para conservar el historial externo.</p>
+                    )}
+                    {manualOpen && !yaPagada && (
+                      <div className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50/60 p-4">
+                        <p className="text-xs font-medium text-neutral-900">Pago externo</p>
+                        <p className="mt-1 text-xs text-neutral-500">Este registro no crea una transferencia ni descuenta saldo de plataforma.</p>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <label className="text-xs font-medium text-neutral-500">Monto (MXN)<input type="number" min="0.01" step="0.01" value={manualMonto} onChange={(event) => setManualMonto(event.target.value)} className="mt-1.5 block w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-black focus:outline-none" /></label>
+                          <label className="text-xs font-medium text-neutral-500">Fecha de pago<input type="date" value={manualFecha} onChange={(event) => setManualFecha(event.target.value)} className="mt-1.5 block w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-black focus:outline-none" /></label>
+                        </div>
+                        <label className="mt-3 block text-xs font-medium text-neutral-500">Nota opcional<textarea value={manualNota} onChange={(event) => setManualNota(event.target.value)} maxLength={500} rows={2} placeholder="Ej. Pagado por transferencia SPEI directa" className="mt-1.5 block w-full resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-black focus:outline-none" /></label>
+                        <button type="button" onClick={handleRegisterManualPayment} disabled={manualLoading} className="mt-3 w-full rounded-xl bg-neutral-800 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50">
+                          {manualLoading ? 'Guardando...' : 'Guardar pago externo'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </div>

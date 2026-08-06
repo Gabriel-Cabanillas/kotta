@@ -9,9 +9,12 @@ const ROW_COUNT = 6
 export default function PagosListSkeleton() {
   return (
     <div className="animate-pulse">
-      {/* Stats rápidos */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        {Array.from({ length: 3 }).map((_, i) => (
+      {/* Resumen financiero */}
+      <div className="flex gap-2 mb-6">
+        {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-9 w-24 rounded-full bg-[#E2E8F0]" />)}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
             <div className="h-3 w-16 rounded bg-[#EDEDED] mb-3" />
             <div className="h-8 w-10 rounded bg-[#E2E8F0]" />
@@ -19,15 +22,19 @@ export default function PagosListSkeleton() {
         ))}
       </div>
 
-      {/* Filtros + botón */}
+      {/* Filtros de movimientos */}
       <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
         <div className="flex gap-2">
           {['w-16', 'w-20', 'w-24', 'w-20'].map((w, i) => (
             <div key={i} className={`h-9 ${w} rounded-xl bg-[#E2E8F0]`} />
           ))}
         </div>
-        <div className="h-9 w-40 rounded-xl bg-[#E2E8F0]" />
+        <div className="h-9 w-32 rounded-xl bg-[#E2E8F0]" />
       </div>
+
+      <div className="bg-white rounded-2xl border border-[#E2E8F0] h-36 mb-8" />
+
+      <div className="h-5 w-44 rounded bg-[#E2E8F0] mb-4" />
 
       {/* Lista */}
       <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden">

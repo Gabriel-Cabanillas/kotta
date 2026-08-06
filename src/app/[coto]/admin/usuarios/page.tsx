@@ -32,6 +32,20 @@ async function UsuariosData({ orgId, coto }: { orgId: string; coto: string }) {
     prisma.user.findMany({ where: { orgId, role: 'GUARDIA' },   orderBy: { name: 'asc' } }),
   ])
 
+  // Estado de cuenta bancaria (Stripe) de cada proveedor de este coto.
+  // Se arma como Record<proveedorId, estado> para que UsuariosList lo
+  // consuma directo por índice, sin tener que buscar en un arreglo.
+  const cuentasConectadas = await prisma.cuentaConectada.findMany({
+    where: { proveedorId: { in: proveedores.map((p) => p.id) } },
+    select: { proveedorId: true, payoutsEnabled: true, detailsSubmitted: true },
+  })
+
+  const cuentasPago = Object.fromEntries(
+    cuentasConectadas
+      .filter((c) => c.proveedorId !== null)
+      .map((c) => [c.proveedorId as string, { payoutsEnabled: c.payoutsEnabled, detailsSubmitted: c.detailsSubmitted }])
+  )
+
   return (
     <UsuariosList
       vecinos={vecinos as any}
@@ -39,6 +53,7 @@ async function UsuariosData({ orgId, coto }: { orgId: string; coto: string }) {
       guardias={guardias as any}
       orgId={orgId}
       coto={coto}
+      cuentasPago={cuentasPago}
     />
   )
 }

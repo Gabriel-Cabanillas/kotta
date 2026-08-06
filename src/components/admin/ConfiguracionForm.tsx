@@ -11,7 +11,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Building2, Link2, CreditCard, LayoutGrid, ShieldCheck, Users, Truck, KeyRound, Loader2, Check, } from 'lucide-react'
+import { Building2, Link2, CreditCard, LayoutGrid, ShieldCheck, Users, Truck, KeyRound, Loader2, Check, Landmark } from 'lucide-react'
+import { CuentaConectadaEmbed } from '@/components/pagos/CuentaConectadaEmbed'
 
 type Org = {
   id: string
@@ -20,6 +21,11 @@ type Org = {
   isActive: boolean
 }
 
+type CuentaConectada = {
+  payoutsEnabled: boolean
+  detailsSubmitted: boolean
+} | null
+
 const ROLE_ACCESS = [
   { rol: 'Administrador', path: 'admin', icon: ShieldCheck },
   { rol: 'Vecino', path: 'vecino', icon: Users },
@@ -27,11 +33,12 @@ const ROLE_ACCESS = [
   { rol: 'Guardia', path: 'guardia', icon: KeyRound },
 ] as const
 
-export default function ConfiguracionForm({ org }: { org: Org }) {
+export default function ConfiguracionForm({ org, cuentaConectada }: { org: Org; cuentaConectada: CuentaConectada }) {
   const router  = useRouter()
   const [name, setName]     = useState(org.name)
   const [loading, setLoading] = useState(false)
   const [saved, setSaved]     = useState(false)
+  const [mostrarFormularioPago, setMostrarFormularioPago] = useState(false)
 
   const handleSave = async () => {
     if (!name.trim()) return
@@ -164,6 +171,46 @@ export default function ConfiguracionForm({ org }: { org: Org }) {
           </a>
         </p>
       </section>
+
+
+          {/* Cuenta bancaria (Stripe Connect) */}
+      <section className="bg-white rounded-2xl border border-neutral-100 p-7 md:p-8">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-neutral-900 flex items-center justify-center shrink-0">
+              <Landmark className="w-4 h-4 text-white" strokeWidth={2} />
+            </div>
+            <h2 className="text-[0.9375rem] font-medium text-neutral-900">Cuenta bancaria</h2>
+          </div>
+
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-100/60">
+            <span className={`w-1.5 h-1.5 rounded-full ${cuentaConectada?.payoutsEnabled ? 'bg-green' : 'bg-yellow'}`} />
+            <span className="text-xs font-medium text-neutral-900">
+              {cuentaConectada?.payoutsEnabled ? 'Listo para recibir pagos' : 'Pendiente de configurar'}
+            </span>
+          </div>
+        </div>
+
+        <p className="text-xs text-neutral-400 mb-5">
+          {cuentaConectada?.payoutsEnabled
+            ? 'Tu cuenta está lista para recibir las transferencias de saldo solicitadas desde Kotta.'
+            : 'Conecta la cuenta bancaria del condominio para poder recibir transferencias de saldo desde Kotta.'}
+        </p>
+
+        {mostrarFormularioPago ? (
+          <CuentaConectadaEmbed onCompletado={() => { setMostrarFormularioPago(false); router.refresh() }} />
+        ) : (
+          <button
+            onClick={() => setMostrarFormularioPago(true)}
+            className="btn-primary py-2.5 px-6 text-sm"
+          >
+            {cuentaConectada?.detailsSubmitted ? 'Actualizar información' : 'Conectar cuenta bancaria'}
+          </button>
+        )}
+      </section>
+
+
+
 
       {/* Accesos rápidos */}
       <section className="bg-white rounded-2xl border border-neutral-100 p-7 md:p-8">

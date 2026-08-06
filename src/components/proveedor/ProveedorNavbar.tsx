@@ -17,7 +17,9 @@ import { cn } from '@/components/lib/utils'
 const NAV_ITEMS = [
   { label: 'Mis órdenes', href: ''          },
   { label: 'Historial',   href: '/ordenes'  },
+  { label: 'Pagos recibidos', href: '/pagos' },
   { label: 'Reportes',    href: '/reportes' },
+  {label: 'Configuración', href: '/configuracion'}
 ]
 
 export default function ProveedorNavbar({
