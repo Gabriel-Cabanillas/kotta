@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import ConfiguracionForm from '@/components/admin/ConfiguracionForm'
 import RetiroSaldoCondominio from '@/components/admin/RetiroSaldoCondominio'
-import { obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
+import { calcularDisponibleAhoraCoto, obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
 
 const ESTADOS_COMPROMETIDOS: Array<'PENDIENTE' | 'PROCESANDO' | 'PAGADO'> = [
   'PENDIENTE',
@@ -50,7 +50,7 @@ export default async function ConfiguracionPage({ params }: { params: { coto: st
     console.error('No fue posible consultar la liquidez de Stripe para el retiro:', error)
     return null
   })
-  const disponibleAhora = liquidezStripe ? Math.min(saldoDisponible, liquidezStripe.disponible) : null
+  const disponibleAhora = liquidezStripe ? calcularDisponibleAhoraCoto(saldoDisponible, liquidezStripe.disponible) : null
   const enLiquidacion = disponibleAhora === null ? null : Math.max(0, saldoDisponible - disponibleAhora)
 
   return (

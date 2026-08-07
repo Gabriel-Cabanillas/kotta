@@ -5,7 +5,7 @@
 import { EstadoPago, TipoOperacionPago } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
+import { calcularDisponibleAhoraCoto, obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
 import { stripe } from '@/lib/stripe'
 
 const ESTADOS_COMPROMETIDOS: EstadoPago[] = [
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
     (total, distribucion) => total + Number(distribucion.monto) + Number(distribucion.comisionEstimada ?? 0),
     0
   ))
-  const disponibleAhora = Math.min(saldoContable, liquidezStripe.disponible)
+  const disponibleAhora = calcularDisponibleAhoraCoto(saldoContable, liquidezStripe.disponible)
 
   if (montoReembolso > disponibleAhora) {
     return Response.json({

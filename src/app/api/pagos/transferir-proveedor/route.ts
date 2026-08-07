@@ -7,7 +7,7 @@ import { Prisma } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
-import { obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
+import { calcularDisponibleAhoraCoto, obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
 import { calcularComisionPayoutEstimada } from '@/lib/stripe/fees'
 import type Stripe from 'stripe'
 
@@ -164,7 +164,7 @@ export async function POST(req: Request) {
         if (totalDescontado > disponible) {
           return { tipo: 'SIN_SALDO' as const }
         }
-        const disponibleAhora = Math.min(Math.max(0, disponible), liquidezStripe.disponible)
+        const disponibleAhora = calcularDisponibleAhoraCoto(disponible, liquidezStripe.disponible)
         if (totalDescontado > disponibleAhora) {
           return {
             tipo: 'SIN_DISPONIBILIDAD_STRIPE' as const,

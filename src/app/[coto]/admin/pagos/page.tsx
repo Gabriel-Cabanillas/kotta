@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { EstadoPago, TipoCuentaConectada, TipoDestino, TipoOperacionPago } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
+import { calcularDisponibleAhoraCoto, obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
 import PagosListSkeleton from '@/components/admin/PagosListSkeleton'
 import PagosAdminTabs from '@/components/admin/PagosAdminTabs'
 import type { MovimientoFinanciero } from '@/components/admin/MovimientosFinancieros'
@@ -72,7 +72,7 @@ async function PagosData({ orgId, coto }: { orgId: string; coto: string }) {
     console.error('No fue posible consultar la liquidez de Stripe para el resumen:', error)
     return null
   })
-  const disponibleAhora = liquidezStripe ? Math.min(saldoDisponible, liquidezStripe.disponible) : null
+  const disponibleAhora = liquidezStripe ? calcularDisponibleAhoraCoto(saldoDisponible, liquidezStripe.disponible) : null
   const enLiquidacion = disponibleAhora === null ? null : Math.max(0, saldoDisponible - disponibleAhora)
   const necesitaAtencion = (cuenta: { chargesEnabled: boolean; payoutsEnabled: boolean; detailsSubmitted: boolean } | null) => !(cuenta?.chargesEnabled && cuenta.payoutsEnabled && cuenta.detailsSubmitted)
   const proveedoresOrdenados = proveedores.map((proveedor) => ({ id: proveedor.id, name: proveedor.name, cuenta: proveedor.cuentaConectada })).sort((a, b) => Number(necesitaAtencion(b.cuenta)) - Number(necesitaAtencion(a.cuenta)) || a.name.localeCompare(b.name, 'es-MX'))
