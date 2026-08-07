@@ -19,3 +19,12 @@ export async function obtenerLiquidezPlataformaMx() {
     pendiente: sumarMonedaMx(balance.pending),
   }
 }
+
+/**
+ * Acota la liquidez global al saldo contable de un coto sin exponer un
+ * resultado negativo a usuarios de condominios. El valor global crudo se
+ * conserva para los controles internos de Kotta Staff.
+ */
+export function calcularDisponibleAhoraCoto(saldoContable: number, disponibleStripe: number) {
+  return Math.max(0, Math.min(Math.max(0, saldoContable), disponibleStripe))
+}

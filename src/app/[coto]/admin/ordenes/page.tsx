@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
+import { calcularDisponibleAhoraCoto, obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
 import OrdenesList from '@/components/admin/OrdenesList'
 import OrdenesListSkeleton from '@/components/admin/OrdenesListSkeleton'
 
@@ -61,7 +61,7 @@ async function OrdenesData({ orgId, coto }: { orgId: string; coto: string }) {
   ])
 
   const saldoContable = Math.max(0, cobros.reduce((total, cobro) => total + Number(cobro.montoNeto ?? cobro.monto), 0) - distribuciones.reduce((total, distribucion) => total + Number(distribucion.monto) + Number(distribucion.comisionEstimada ?? 0), 0))
-  const disponibleParaTransferirAhora = liquidezStripe ? Math.min(saldoContable, liquidezStripe.disponible) : null
+  const disponibleParaTransferirAhora = liquidezStripe ? calcularDisponibleAhoraCoto(saldoContable, liquidezStripe.disponible) : null
   const saldoEnLiquidacion = disponibleParaTransferirAhora === null ? null : Math.max(0, saldoContable - disponibleParaTransferirAhora)
 
   return <OrdenesList ordenes={ordenes as any} coto={coto} disponibleParaTransferirAhora={disponibleParaTransferirAhora} saldoEnLiquidacion={saldoEnLiquidacion} />

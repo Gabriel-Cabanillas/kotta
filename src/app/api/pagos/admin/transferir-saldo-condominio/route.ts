@@ -7,7 +7,7 @@ import { Prisma } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
-import { obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
+import { calcularDisponibleAhoraCoto, obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
 import type Stripe from 'stripe'
 
 type StripeError = {
@@ -153,7 +153,7 @@ export async function POST(req: Request) {
         const disponible = cobros.reduce((total, cobro) => total + Number(cobro.montoNeto ?? cobro.monto), 0)
           - distribuciones.reduce((total, distribucion) => total + Number(distribucion.monto) + Number(distribucion.comisionEstimada ?? 0), 0)
         if (montoNormalizado > disponible) return { tipo: 'SIN_SALDO' as const }
-        const disponibleAhora = Math.min(Math.max(0, disponible), liquidezStripe.disponible)
+        const disponibleAhora = calcularDisponibleAhoraCoto(disponible, liquidezStripe.disponible)
         if (montoNormalizado > disponibleAhora) {
           return {
             tipo: 'SIN_DISPONIBILIDAD_STRIPE' as const,
