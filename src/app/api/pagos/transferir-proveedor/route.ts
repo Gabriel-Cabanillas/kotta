@@ -6,30 +6,15 @@
 import { Prisma } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { stripe } from '@/lib/stripe'
+import { assertFinancialOperationsAllowed, executeReservedTransfer, FinancialReviewRequired, transferReference } from '@/lib/stripe/financial-safety'
 import { calcularDisponibleAhoraCoto, obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
 import { calcularComisionPayoutEstimada } from '@/lib/stripe/fees'
-import type Stripe from 'stripe'
-
-type StripeError = {
-  code?: string
-  message?: string
-}
 
 const ESTADOS_COMPROMETIDOS: Array<'PENDIENTE' | 'PROCESANDO' | 'PAGADO'> = [
   'PENDIENTE',
   'PROCESANDO',
   'PAGADO',
 ]
-
-function numeroDeIntento(referencia: string | null) {
-  const coincidencia = referencia?.match(/^intento:(\d+)/)
-  return coincidencia ? Number(coincidencia[1]) : 0
-}
-
-function referenciaDeIntento(intentos: number, mensaje?: string) {
-  return mensaje ? `intento:${intentos} | ${mensaje}` : `intento:${intentos}`
-}
 
 function mensajeDeDisponibilidad(disponibleAhora: number, enLiquidacion: number) {
   const moneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
@@ -50,7 +35,7 @@ export async function POST(req: Request) {
   // La organización se valida desde la consulta para impedir transferencias
   // sobre órdenes de otro coto.
   const orden = await prisma.workOrder.findFirst({
-    where: { id: ordenId, orgId: user.orgId },
+    where: { id: ordenId, orgId: user.orgId, provider: { orgId: user.orgId, role: 'PROVEEDOR', isActive: true }, ticket: { orgId: user.orgId, reportedBy: { orgId: user.orgId } } },
     select: { id: true, status: true, cost: true, providerId: true },
   })
 
@@ -102,6 +87,7 @@ export async function POST(req: Request) {
   for (let intentoTransaccion = 0; intentoTransaccion < 3; intentoTransaccion++) {
     try {
       reserva = await prisma.$transaction(async (tx) => {
+        await assertFinancialOperationsAllowed(tx, user.orgId!)
         // Compatibilidad temporal: el Pago TRANSFERENCIA histórico no tiene un
         // origen contable verificable; impedir otro pago evita duplicar los $400.
         const pagoLegacy = await tx.pago.findUnique({
@@ -117,20 +103,6 @@ export async function POST(req: Request) {
         })
 
         if (existente) {
-          if (existente.estado === 'FALLIDO') {
-            const siguienteIntento = numeroDeIntento(existente.referencia) + 1
-            const reintentada = await tx.distribucionPago.update({
-              where: { id: existente.id },
-              data: {
-                estado: 'PENDIENTE',
-                referencia: referenciaDeIntento(siguienteIntento),
-                montoOriginal: montoProveedor,
-                comisionEstimada,
-              },
-            })
-            return { tipo: 'DISTRIBUCION' as const, distribucion: reintentada }
-          }
-
           return { tipo: 'DISTRIBUCION' as const, distribucion: existente }
         }
 
@@ -184,14 +156,22 @@ export async function POST(req: Request) {
             comisionEstimada,
             estado: 'PENDIENTE',
             workOrderId: orden.id,
-            referencia: referenciaDeIntento(1),
+            referencia: null,
           },
         })
 
-        return { tipo: 'DISTRIBUCION' as const, distribucion }
+        const reservada = await tx.distribucionPago.update({
+          where: { id: distribucion.id },
+          data: { referencia: transferReference(distribucion.id, {
+            amount: montoCentavos, currency: 'mxn', destination: cuentaProveedor.stripeAccountId,
+            metadata: { distribucionId: distribucion.id, ordenId: orden.id, orgId: user.orgId!, proveedorId: orden.providerId },
+          }) },
+        })
+        return { tipo: 'DISTRIBUCION' as const, distribucion: reservada }
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
       break
     } catch (error: any) {
+      if (error instanceof FinancialReviewRequired) return Response.json({ error: error.message }, { status: 409 })
       // Un conflicto serializable se reintenta con el saldo recalculado. P2002
       // indica que otra solicitud ya reservó esta misma orden.
       if (error.code === 'P2034' && intentoTransaccion < 2) continue
@@ -235,62 +215,15 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Esta orden ya fue pagada y posteriormente reembolsada' }, { status: 409 })
   }
 
-  const numeroIntento = Math.max(1, numeroDeIntento(distribucion.referencia))
-  let transfer: Stripe.Transfer
-
   try {
-    transfer = await stripe.transfers.create(
-      {
-        amount: montoCentavos,
-        currency: 'mxn',
-        destination: cuentaProveedor.stripeAccountId,
-        metadata: {
-          distribucionId: distribucion.id,
-          ordenId: orden.id,
-          orgId: user.orgId,
-          proveedorId: orden.providerId,
-        },
-      },
-      { idempotencyKey: `transferencia-${distribucion.id}-${numeroIntento}` }
-    )
-  } catch (error) {
-    const stripeError = error as StripeError
-    const mensaje = stripeError.message ?? 'No fue posible iniciar la transferencia'
-    await prisma.distribucionPago.update({
-      where: { id: distribucion.id },
-      data: { estado: 'FALLIDO', referencia: referenciaDeIntento(numeroIntento, mensaje) },
+    const transfer = await executeReservedTransfer(distribucion, {
+      orgId: user.orgId, amount: montoCentavos,
+      destination: cuentaProveedor.stripeAccountId, accountId: cuentaProveedor.id,
     })
-
-    if (stripeError.code === 'balance_insufficient') {
-      return Response.json(
-        { error: 'La disponibilidad de Stripe cambió mientras se procesaba el pago. Intenta nuevamente para verificar el monto disponible ahora.' },
-        { status: 400 }
-      )
-    }
-
-    console.error('Error al transferir pago al proveedor:', error)
-    return Response.json(
-      { error: 'No fue posible iniciar la transferencia. Intenta nuevamente.' },
-      { status: 502 }
-    )
+    return Response.json({ transferId: transfer.id, estado: 'PAGADO', montoProveedor, comisionEstimada, totalDescontado })
+  } catch (error) {
+    if (error instanceof FinancialReviewRequired) return Response.json({ error: error.message }, { status: 409 })
+    console.error('Transferencia pendiente de confirmación:', error)
+    return Response.json({ error: 'Resultado incierto. La reserva se conserva; el reintento utilizará la misma operación.' }, { status: 503 })
   }
-
-  // Stripe respondió exitosamente; se confirma de forma síncrona. Esta
-  // escritura queda fuera del catch para no falsear un Transfer ya creado.
-  await prisma.distribucionPago.update({
-    where: { id: distribucion.id },
-    data: {
-      stripeTransferId: transfer.id,
-      estado: 'PAGADO',
-      referencia: null,
-    },
-  })
-
-  return Response.json({
-    transferId: transfer.id,
-    estado: 'PAGADO',
-    montoProveedor,
-    comisionEstimada,
-    totalDescontado,
-  })
 }

@@ -29,18 +29,19 @@ export default async function OrdenesPage({ params }: { params: { coto: string }
 async function OrdenesData({ orgId, coto }: { orgId: string; coto: string }) {
   const [ordenes, cobros, distribuciones, liquidezStripe] = await Promise.all([
     prisma.workOrder.findMany({
-    where: { orgId }, orderBy: { createdAt: 'desc' },
+    where: { orgId, provider: { orgId }, ticket: { orgId, reportedBy: { orgId } } }, orderBy: { createdAt: 'desc' },
     include: {
-      ticket: { include: { reportedBy: true } },
+      ticket: { include: { reportedBy: { select: { name: true, houseNumber: true } } } },
       provider: {
-        include: {
+        select: {
+          id: true, name: true,
           cuentaConectada: {
             select: { id: true, payoutsEnabled: true },
           },
         },
       },
       distribucionesPago: {
-        where: { destino: 'PROVEEDOR' },
+        where: { destino: 'PROVEEDOR', orgId },
         select: { estado: true, origenManual: true, notaManual: true },
         take: 1,
       },

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import ConfiguracionForm from '@/components/admin/ConfiguracionForm'
 import RetiroSaldoCondominio from '@/components/admin/RetiroSaldoCondominio'
 import { calcularDisponibleAhoraCoto, obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
+import KottaPlanCard from '@/components/admin/KottaPlanCard'
 
 const ESTADOS_COMPROMETIDOS: Array<'PENDIENTE' | 'PROCESANDO' | 'PAGADO'> = [
   'PENDIENTE',
@@ -17,10 +18,10 @@ export default async function ConfiguracionPage({ params }: { params: { coto: st
   if (user.role !== 'ADMIN') redirect('/dashboard')
   if (user.org?.slug !== params.coto) redirect('/dashboard')
 
-  const cuentaConectada = await prisma.cuentaConectada.findUnique({
-    where: { orgId: user.org!.id },
-    select: { payoutsEnabled: true, detailsSubmitted: true },
-  })
+  const [cuentaConectada, subscription] = await Promise.all([
+    prisma.cuentaConectada.findUnique({ where: { orgId: user.org!.id }, select: { payoutsEnabled: true, detailsSubmitted: true } }),
+    prisma.kottaSubscription.findUnique({ where: { organizationId: user.org!.id } }),
+  ])
 
   const [cobros, distribuciones] = await Promise.all([
     prisma.pago.findMany({
@@ -60,6 +61,7 @@ export default async function ConfiguracionPage({ params }: { params: { coto: st
         <p className="text-sm text-[#6B7A99]">Datos generales del condominio</p>
       </div>
       <ConfiguracionForm org={user.org as any} cuentaConectada={cuentaConectada} />
+      <div className="mt-6 max-w-xl"><KottaPlanCard plan={subscription ? { ...subscription, baseMonthlyPrice: subscription.baseMonthlyPrice ? Number(subscription.baseMonthlyPrice) : null, discountRate: subscription.discountRate ? Number(subscription.discountRate) : null, contractedMonthlyPrice: subscription.contractedMonthlyPrice ? Number(subscription.contractedMonthlyPrice) : null, vatRate: subscription.vatRate ? Number(subscription.vatRate) : null } : null} /></div>
       <div className="mt-6 max-w-xl">
         <RetiroSaldoCondominio
           saldoContable={saldoDisponible}

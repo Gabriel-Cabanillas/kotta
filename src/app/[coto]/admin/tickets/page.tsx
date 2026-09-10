@@ -37,14 +37,18 @@ async function TicketsData({
 }: { coto: string; orgId: string; statusFilter: string }) {
   console.time('[Tickets] queries')
   try {
-    const where = { orgId, ...(statusFilter !== 'TODOS' ? { status: statusFilter as any } : {}) }
+    const where = {
+      orgId, reportedBy: { orgId },
+      OR: [{ workOrder: null }, { workOrder: { orgId, provider: { orgId } } }],
+      ...(statusFilter !== 'TODOS' ? { status: statusFilter as any } : {}),
+    }
 
     const [tickets, proveedores, counts] = await Promise.all([
       prisma.ticket.findMany({
         where, orderBy: { createdAt: 'desc' },
-        include: { reportedBy: true, workOrder: { include: { provider: true } } },
+        include: { reportedBy: { select: { name: true, houseNumber: true } }, workOrder: { include: { provider: { select: { name: true } } } } },
       }),
-      prisma.user.findMany({ where: { orgId, role: 'PROVEEDOR', isActive: true }, orderBy: { name: 'asc' } }),
+      prisma.user.findMany({ where: { orgId, role: 'PROVEEDOR', isActive: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
       prisma.ticket.groupBy({ by: ['status'], where: { orgId }, _count: true }),
     ])
 

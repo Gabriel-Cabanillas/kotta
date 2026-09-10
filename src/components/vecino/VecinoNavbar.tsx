@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/components/lib/utils'
 import Image from 'next/image'
+import NotificationBell from '@/components/notifications/NotificationBell'
 
 const NAV_ITEMS = [
   { label: 'Inicio',      href: ''         },
@@ -75,6 +76,7 @@ export default function VecinoNavbar({
           </nav>
 
           <div className="flex items-center gap-3">
+            <NotificationBell centerHref={`${base}/notificaciones`} />
             <div className="hidden sm:block text-right">
               <p className="text-sm font-medium text-neutral-900 leading-none">{user.name}</p>
               {user.houseNumber && <p className="text-xs text-neutral-400 mt-1">Casa {user.houseNumber}</p>}

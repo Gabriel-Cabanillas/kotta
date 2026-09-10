@@ -15,60 +15,48 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
 
+class InvalidVerificationError extends Error {}
+
 export async function POST(req: Request) {
   try {
     const { email, codigo, tipo } = await req.json()
 
-    if (!email || !codigo || !tipo) {
+    if (typeof email !== 'string' || !email || typeof codigo !== 'string' || !codigo || !['LOGIN', 'REGISTRO'].includes(tipo)) {
       return NextResponse.json(
         { error: 'Datos incompletos' },
         { status: 400 }
       )
     }
 
-    // Buscar código válido
-    const verification = await (prisma as any).verificationCode.findFirst({
-      where: {
-        email,
-        code:      codigo,
-        type:      tipo,
-        used:      false,
-        expiresAt: { gt: new Date() },
-      },
-    })
-
-    if (!verification) {
-      return NextResponse.json(
-        { error: 'Código inválido o expirado' },
-        { status: 400 }
-      )
-    }
-
-    // Marcar código como usado
-    await (prisma as any).verificationCode.update({
-      where: { id: verification.id },
-      data:  { used: true },
-    })
-
-    // Activar usuario si es registro
-    if (tipo === 'REGISTRO') {
-      await (prisma as any).user.update({
-        where: { email },
-        data:  { isActive: true },
-      })
-    }
-
-    // Crear sesión
-    const user = await (prisma as any).user.findUnique({
-      where:   { email },
-      include: { org: true },
-    })
-
     const token     = randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 días
 
-    await (prisma as any).session.create({
-      data: { token, userId: user.id, expiresAt },
+    await prisma.$transaction(async (tx) => {
+      // Bloquear primero el usuario, igual que toggle, para serializar la revocación.
+      // Cualquier fallo del código revierte también la activación de registro.
+      const eligible = await tx.user.updateMany({
+        where: {
+          email,
+          ...(tipo === 'LOGIN'
+            ? { isActive: true, role: { in: ['KOTTA_STAFF', 'ADMIN', 'VECINO', 'PROVEEDOR', 'GUARDIA'] as const } }
+            : { isActive: false, role: 'ADMIN' as const, orgId: { not: null } }),
+        },
+        data: { isActive: true },
+      })
+      if (eligible.count !== 1) throw new InvalidVerificationError()
+
+      const verification = await tx.verificationCode.findFirst({
+        where: { email, code: codigo, type: tipo, used: false, expiresAt: { gt: new Date() } },
+        select: { id: true },
+      })
+      if (!verification) throw new InvalidVerificationError()
+      const consumed = await tx.verificationCode.updateMany({
+        where: { id: verification.id, used: false, expiresAt: { gt: new Date() } },
+        data: { used: true },
+      })
+      if (consumed.count !== 1) throw new InvalidVerificationError()
+      const user = await tx.user.findUniqueOrThrow({ where: { email }, select: { id: true } })
+      await tx.session.create({ data: { token, userId: user.id, expiresAt } })
     })
 
     // Determinar redirección
@@ -85,6 +73,9 @@ export async function POST(req: Request) {
 
     return response
   } catch (error: any) {
+    if (error instanceof InvalidVerificationError) {
+      return NextResponse.json({ error: 'Código inválido, expirado o cuenta inactiva' }, { status: 400 })
+    }
     console.error('Error en verificación:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },

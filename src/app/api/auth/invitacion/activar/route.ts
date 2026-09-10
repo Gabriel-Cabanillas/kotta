@@ -16,6 +16,8 @@ import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 
+class InvalidInvitationError extends Error {}
+
 export async function POST(req: Request) {
   try {
     const { token, password } = await req.json()
@@ -49,19 +51,25 @@ export async function POST(req: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    await (prisma as any).$transaction([
-      (prisma as any).user.update({
-        where: { email: verification.email },
-        data:  { password: hashedPassword, isActive: true },
-      }),
-      (prisma as any).verificationCode.update({
-        where: { id: verification.id },
-        data:  { used: true },
-      }),
-    ])
+    await prisma.$transaction(async (tx) => {
+      // Mismo orden de bloqueo que la desactivación; un token revocado revierte todo.
+      const eligible = await tx.user.updateMany({
+        where: { email: verification.email, isActive: false, orgId: { not: null }, role: { in: ['ADMIN', 'VECINO', 'PROVEEDOR', 'GUARDIA'] } },
+        data: { password: hashedPassword, isActive: true },
+      })
+      if (eligible.count !== 1) throw new InvalidInvitationError()
+      const consumed = await tx.verificationCode.updateMany({
+        where: { id: verification.id, type: 'INVITACION', used: false, expiresAt: { gt: new Date() } },
+        data: { used: true },
+      })
+      if (consumed.count !== 1) throw new InvalidInvitationError()
+    })
 
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (error) {
+    if (error instanceof InvalidInvitationError) {
+      return NextResponse.json({ error: 'Invitación inválida o expirada' }, { status: 400 })
+    }
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }

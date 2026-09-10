@@ -12,10 +12,14 @@ import { getSession } from '@/lib/auth'
 
 export async function POST(req: Request) {
   const admin = await getSession()
-  if (!admin || admin.role !== 'ADMIN') return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  if (!admin || admin.role !== 'ADMIN' || !admin.orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 
-  const { userId: targetUserId, amount, month, year, notes, status, orgId } = await req.json()
-  if (admin.orgId !== orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  const { userId: targetUserId, amount, month, year, notes, status, orgId: requestedOrgId } = await req.json()
+  if (requestedOrgId !== undefined && admin.orgId !== requestedOrgId) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  const orgId = admin.orgId
+  if (typeof targetUserId !== 'string' || !targetUserId) return NextResponse.json({ error: 'Usuario inválido' }, { status: 400 })
+  const target = await prisma.user.findFirst({ where: { id: targetUserId, orgId, role: 'VECINO' }, select: { id: true } })
+  if (!target) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
 
   try {
     await prisma.payment.upsert({

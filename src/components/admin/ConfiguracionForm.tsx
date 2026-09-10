@@ -1,7 +1,7 @@
 /**
  * Componente de configuracion del panel administrativo de Kotta.
- * Contiene la edicion del nombre del condominio, visualizacion del slug, estado
- * de la organizacion, plan activo y URLs por rol.
+ * Contiene la edicion del nombre del condominio, visualizacion del slug y URLs
+ * por rol.
  * Se relaciona con la pagina admin de configuracion y con la API
  * /api/configuracion/actualizar.
  * Existe para que el ADMIN mantenga datos basicos del coto y consulte los
@@ -11,7 +11,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Building2, Link2, CreditCard, LayoutGrid, ShieldCheck, Users, Truck, KeyRound, Loader2, Check, Landmark } from 'lucide-react'
+import { Building2, Link2, LayoutGrid, ShieldCheck, Users, Truck, KeyRound, Loader2, Check, Landmark } from 'lucide-react'
 import { CuentaConectadaEmbed } from '@/components/pagos/CuentaConectadaEmbed'
 
 type Org = {
@@ -103,7 +103,7 @@ export default function ConfiguracionForm({ org, cuentaConectada }: { org: Org; 
             </span>
             <div className="flex items-center gap-2 bg-black/[0.02] border border-neutral-100 rounded-xl px-3.5 py-2.5">
               <Link2 className="w-3.5 h-3.5 text-neutral-400 shrink-0" strokeWidth={2} />
-              <span className="text-xs text-neutral-400">kotta.com.mx/</span>
+              <span className="text-xs text-neutral-400">kotta.mx/</span>
               <span className="text-sm text-neutral-900 font-mono">{org.slug}</span>
             </div>
             <p className="text-xs text-neutral-400 mt-1.5">
@@ -111,15 +111,6 @@ export default function ConfiguracionForm({ org, cuentaConectada }: { org: Org; 
             </p>
           </div>
 
-          <div>
-            <span className="text-xs font-medium text-neutral-400 mb-1.5 block">Estado</span>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-100/60">
-              <span className={`w-1.5 h-1.5 rounded-full ${org.isActive ? 'bg-green' : 'bg-red'}`} />
-              <span className="text-xs font-medium text-neutral-900">
-                {org.isActive ? 'Activo' : 'Inactivo'}
-              </span>
-            </div>
-          </div>
         </div>
 
         <div className="flex items-center gap-3 mt-7 pt-6 border-t border-neutral-100">
@@ -140,38 +131,6 @@ export default function ConfiguracionForm({ org, cuentaConectada }: { org: Org; 
           )}
         </div>
       </section>
-
-      {/* Info del plan */}
-      <section className="bg-white rounded-2xl border border-neutral-100 p-7 md:p-8">
-        <div className="flex items-center gap-2.5 mb-5">
-          <div className="w-8 h-8 rounded-lg bg-neutral-900 flex items-center justify-center shrink-0">
-            <CreditCard className="w-4 h-4 text-white" strokeWidth={2} />
-          </div>
-          <h2 className="text-[0.9375rem] font-medium text-neutral-900">Plan activo</h2>
-        </div>
-
-        <div className="flex items-center justify-between p-5 bg-black rounded-2xl">
-          <div>
-            <p className="text-sm font-medium text-white">Plan único KOTTA</p>
-            <p className="text-xs text-white/60 mt-0.5">Todos los módulos incluidos</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xl font-medium text-white">$1,500</p>
-            <p className="text-xs text-white/60">MXN / mes</p>
-          </div>
-        </div>
-
-        <p className="text-xs text-neutral-400 mt-4">
-          Para cambios en tu plan o facturación contacta a{' '}
-          <a
-            href="mailto:hola@kotta.com.mx"
-            className="text-neutral-900 font-medium hover:text-red transition-colors duration-150"
-          >
-            hola@kotta.com.mx
-          </a>
-        </p>
-      </section>
-
 
           {/* Cuenta bancaria (Stripe Connect) */}
       <section className="bg-white rounded-2xl border border-neutral-100 p-7 md:p-8">

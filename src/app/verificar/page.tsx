@@ -22,6 +22,7 @@ function VerificarForm() {
   const searchParams = useSearchParams()
   const email        = searchParams.get('email') ?? ''
   const tipo         = searchParams.get('tipo') ?? 'LOGIN'
+  const esRegistro   = tipo === 'REGISTRO'
 
   const [codigo, setCodigo] = useState(['', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
@@ -113,9 +114,13 @@ function VerificarForm() {
             priority
             className="h-11 w-11 mb-7"
           />
-          <h1 className="text-2xl font-medium text-black">Verifica tu identidad</h1>
+          <h1 className="text-2xl font-medium text-black">
+            {esRegistro ? 'Revisa tu correo' : 'Verifica tu identidad'}
+          </h1>
           <p className="text-sm text-neutral-400 mt-2">
-            Enviamos un código de 6 dígitos a
+            {esRegistro
+              ? 'Ingresa el código de verificación que te enviamos a'
+              : 'Enviamos un código de 6 dígitos a'}
           </p>
           <p className="text-sm font-medium text-black mt-0.5">{email}</p>
         </div>

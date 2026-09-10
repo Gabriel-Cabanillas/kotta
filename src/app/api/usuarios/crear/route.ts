@@ -15,15 +15,19 @@ import bcrypt from 'bcryptjs'
 
 export async function POST(req: Request) {
   const admin = await getSession()
-  if (!admin || admin.role !== 'ADMIN') {
+  if (!admin || admin.role !== 'ADMIN' || !admin.orgId) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const { name, email, phone, houseNumber, role, orgId } = await req.json()
+  const { name, email, phone, houseNumber, role, orgId: requestedOrgId } = await req.json()
 
-  if (admin.orgId !== orgId) {
+  if (requestedOrgId !== undefined && admin.orgId !== requestedOrgId) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
+  if (!['ADMIN', 'VECINO', 'PROVEEDOR', 'GUARDIA'].includes(role)) {
+    return NextResponse.json({ error: 'Rol no permitido' }, { status: 403 })
+  }
+  const orgId = admin.orgId
 
   const existing = await (prisma as any).user.findUnique({ where: { email } })
   if (existing) {

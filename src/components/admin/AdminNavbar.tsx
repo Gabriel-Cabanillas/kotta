@@ -13,13 +13,16 @@
 
 import { useRouter } from 'next/navigation'
 import { User } from '@prisma/client'
+import NotificationBell from '@/components/notifications/NotificationBell'
 
 export default function AdminNavbar({
   user,
   orgName,
+  coto,
 }: {
   user: User
   orgName: string
+  coto: string
 }) {
   const router = useRouter()
 
@@ -44,6 +47,8 @@ export default function AdminNavbar({
       </div>
 
       <div className="flex items-center gap-4">
+        <NotificationBell centerHref={`/${coto}/admin/notificaciones`} />
+
         {/* Usuario activo */}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-black flex items-center justify-center ring-1 ring-black/[0.06]">

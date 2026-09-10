@@ -13,14 +13,15 @@ import { prisma } from '@/lib/prisma'
 
 export async function POST(req: Request) {
   const user = await getSession()
-  if (!user || user.role !== 'PROVEEDOR') {
+  if (!user || user.role !== 'PROVEEDOR' || !user.orgId) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
   const { ordenId, status, cost, costNote } = await req.json()
 
-  const orden = await (prisma as any).workOrder.findUnique({ where: { id: ordenId } })
-  if (!orden || orden.providerId !== user.id) {
+  if (typeof ordenId !== 'string' || !ordenId) return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+  const orden = await prisma.workOrder.findFirst({ where: { id: ordenId, orgId: user.orgId, providerId: user.id, ticket: { orgId: user.orgId, reportedBy: { orgId: user.orgId } } } })
+  if (!orden) {
     return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
   }
 
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
   }
 
   await (prisma as any).workOrder.update({
-    where: { id: ordenId },
+    where: { id: ordenId, orgId: user.orgId, providerId: user.id },
     data: {
       status,
       ...(definiendoPrecio

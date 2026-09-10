@@ -1,5 +1,3 @@
-'use client'
-
 import Image from 'next/image'
 
 /**
@@ -42,9 +40,11 @@ export default function HeroSection() {
 
       {/* ── Sección Hero ─────────────────────────────────────── */}
       <section
-        className="relative w-full min-h-screen bg-white overflow-hidden"
+        id="inicio"
+        className="relative min-h-[720px] w-full overflow-hidden bg-white sm:min-h-screen"
         aria-label="Hero — Welcome To Kotta"
       >
+        <h1 className="sr-only">Kotta, software para la administración de condominios</h1>
 
         {/* ════════════════════════════════════════════════════
             TÍTULO PRINCIPAL  z-10
@@ -53,14 +53,15 @@ export default function HeroSection() {
         ════════════════════════════════════════════════════ */}
         <div
           className="absolute inset-x-0 z-10 pointer-events-none select-none"
+          data-parallax-speed="-0.035"
           style={{ top: '10vh' }}
           aria-hidden="true"
         >
           {/* Línea 1: "Welcome" */}
           <p
-            className="font-gotham font-normal text-black leading-none tracking-tight"
+            className="hero-title-line font-gotham font-normal text-black leading-none tracking-tight"
             style={{
-              fontSize: 'clamp(5rem, 13vw, 13rem)',
+              fontSize: 'clamp(3.75rem, 13vw, 13rem)',
               letterSpacing: '-0.03em',
               textAlign: 'center',
               marginLeft: '-4vw',           /* leve sesgo izquierda */
@@ -72,9 +73,9 @@ export default function HeroSection() {
 
           {/* Línea 2: "To Kotta" */}
           <p
-            className="font-gotham font-normal text-black leading-none tracking-tight"
+            className="hero-title-line font-gotham font-normal text-black leading-none tracking-tight"
             style={{
-              fontSize: 'clamp(5rem, 13vw, 13rem)',
+              fontSize: 'clamp(3.75rem, 13vw, 13rem)',
               letterSpacing: '-0.03em',
               textAlign: 'right',
               paddingRight: '2vw',          /* desplazado hacia la derecha */
@@ -91,7 +92,8 @@ export default function HeroSection() {
             Cuadrante medio-izquierdo, altura de "Welcome"
         ════════════════════════════════════════════════════ */}
         <div
-          className="absolute z-20"
+          className="hero-object-left absolute z-20"
+          data-parallax-speed="-0.075"
           style={{
             top: 'clamp(14rem, 25vh, 22rem)',
             left: 'clamp(2rem, 7vw, 8rem)',
@@ -101,19 +103,17 @@ export default function HeroSection() {
           {/* Capa exterior: rotación estática */}
           <div style={{ transform: 'rotate(12deg)' }}>
             {/* Capa interior: animación float */}
-            <div className="animate-float-icon">
+            <div className="animate-float-icon motion-reduce:animate-none">
               <Image
                 src="/icono-mensaje2.png"
                 alt=""
                 width={120}
                 height={120}
-                unoptimized
-                className="w-[clamp(150px,9vw,130px)] h-auto"
+                className="h-auto w-[clamp(72px,9vw,130px)]"
                 style={{
                   filter:
                     'drop-shadow(-4px 8px 16px rgba(0,0,0,0.28))',
                 }}
-                priority
               />
             </div>
           </div>
@@ -124,7 +124,8 @@ export default function HeroSection() {
             Cuadrante inferior-derecho, altura base del laptop
         ════════════════════════════════════════════════════ */}
         <div
-          className="absolute z-20"
+          className="hero-object-right absolute z-20"
+          data-parallax-speed="-0.045"
           style={{
             bottom: 'clamp(6rem, 18vh, 14rem)',
             right: 'clamp(2rem, 7vw, 8rem)',
@@ -134,19 +135,17 @@ export default function HeroSection() {
           {/* Capa exterior: rotación estática */}
           <div style={{ transform: 'rotate(-10deg)' }}>
             {/* Capa interior: animación float con delay */}
-            <div className="animate-float-icon-delayed">
+            <div className="animate-float-icon-delayed motion-reduce:animate-none">
               <Image
                 src="/icono-folder2.png"
                 alt=""
                 width={130}
                 height={130}
-                unoptimized
-                className="w-[clamp(250px,10vw,145px)] h-auto"
+                className="h-auto w-[clamp(110px,10vw,145px)]"
                 style={{
                   filter:
                     'drop-shadow(4px 10px 18px rgba(0,0,0,0.3))',
                 }}
-                priority
               />
             </div>
           </div>
@@ -158,25 +157,20 @@ export default function HeroSection() {
         ════════════════════════════════════════════════════ */}
         <div
           className="absolute bottom-0 left-1/2 -translate-x-1/2 z-30"
+          data-parallax-speed="-0.02"
           aria-hidden="true"
         >
-          <Image
-            src="/mano-macbook.png"
-            alt="Dashboard de KOTTA en una MacBook"
-            width={860}
-            height={760}
-            unoptimized
-            className="w-[clamp(360px,58vw,860px)] h-auto"
-            style={{
-              /* Sombra proyectada hacia abajo sobre la mano */
-              filter:
-                'drop-shadow(0 24px 48px rgba(0,0,0,0.18))',
-              /* Asegura que no haya gap inferior */
-              display: 'block',
-              verticalAlign: 'bottom',
-            }}
-            priority
-          />
+          <div className="hero-device-enter">
+            <Image
+              src="/mano-macbook.png"
+              alt="Dashboard de KOTTA en una MacBook"
+              width={860}
+              height={760}
+              className="w-[clamp(360px,58vw,860px)] h-auto"
+              style={{ filter: 'drop-shadow(0 24px 48px rgba(0,0,0,0.18))', display: 'block', verticalAlign: 'bottom' }}
+              priority
+            />
+          </div>
         </div>
 
         {/* ════════════════════════════════════════════════════
@@ -184,7 +178,8 @@ export default function HeroSection() {
             Itálica ligera, cuadrante inferior-izquierdo
         ════════════════════════════════════════════════════ */}
         <div
-          className="absolute z-20"
+          className="hero-quote-enter absolute z-20"
+          data-parallax-speed="-0.018"
           style={{
             bottom: 'clamp(5rem, 14vh, 11rem)',
             left: 'clamp(2rem, 6vw, 7rem)',
@@ -212,6 +207,8 @@ export default function HeroSection() {
             <span aria-hidden="true">"</span>
           </p>
         </div>
+
+        <div className="absolute inset-x-0 bottom-0 z-40 h-px bg-gradient-to-r from-transparent via-black/20 to-transparent" aria-hidden="true" />
 
       </section>
     </>

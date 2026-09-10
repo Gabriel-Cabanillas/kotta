@@ -13,6 +13,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/components/lib/utils'
+import NotificationBell from '@/components/notifications/NotificationBell'
 
 const NAV_ITEMS = [
   { label: 'Mis órdenes', href: ''          },
@@ -101,6 +102,7 @@ export default function ProveedorNavbar({
 
           {/* Usuario */}
           <div className="flex items-center gap-3">
+            <NotificationBell centerHref={`${base}/notificaciones`} />
             <div className="hidden sm:flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-full bg-neutral-900 flex items-center justify-center">
                 <span className="text-[11px] font-medium text-white">{initials}</span>

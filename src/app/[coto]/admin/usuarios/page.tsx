@@ -26,10 +26,11 @@ export default async function UsuariosPage({ params }: { params: { coto: string 
 }
 
 async function UsuariosData({ orgId, coto }: { orgId: string; coto: string }) {
+  const select = { id: true, name: true, email: true, phone: true, houseNumber: true, isActive: true, role: true } as const
   const [vecinos, proveedores, guardias] = await Promise.all([
-    prisma.user.findMany({ where: { orgId, role: 'VECINO' },    orderBy: { name: 'asc' } }),
-    prisma.user.findMany({ where: { orgId, role: 'PROVEEDOR' }, orderBy: { name: 'asc' } }),
-    prisma.user.findMany({ where: { orgId, role: 'GUARDIA' },   orderBy: { name: 'asc' } }),
+    prisma.user.findMany({ where: { orgId, role: 'VECINO' },    select, orderBy: { name: 'asc' } }),
+    prisma.user.findMany({ where: { orgId, role: 'PROVEEDOR' }, select, orderBy: { name: 'asc' } }),
+    prisma.user.findMany({ where: { orgId, role: 'GUARDIA' },   select, orderBy: { name: 'asc' } }),
   ])
 
   // Estado de cuenta bancaria (Stripe) de cada proveedor de este coto.

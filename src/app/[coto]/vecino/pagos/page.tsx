@@ -14,16 +14,17 @@ export default async function VecinoPagos({ params }: { params: { coto: string }
   const user = await getSession()
   if (!user) redirect('/sign-in')
   if (user.role !== 'VECINO') redirect('/dashboard')
+  if (!user.orgId || user.org?.slug !== params.coto) redirect('/dashboard')
 
   const destinatarios = await prisma.cargoDestinatario.findMany({
-    where: { viviendaId: user.id },
+    where: { viviendaId: user.id, cargo: { orgId: user.orgId } },
     include: {
       cargo: {
         include: {
           // Cada Cargo puede tener pagos de varios vecinos. Esta consulta se
           // limita al vecino autenticado y toma solamente su intento mas reciente.
           pagos: {
-            where: { vecinoId: user.id },
+            where: { vecinoId: user.id, orgId: user.orgId },
             orderBy: { createdAt: 'desc' },
             take: 1,
             select: { estado: true, monto: true, updatedAt: true },

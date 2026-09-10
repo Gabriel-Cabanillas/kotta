@@ -12,13 +12,14 @@ import { getSession } from '@/lib/auth'
 
 export async function POST(req: Request) {
   const admin = await getSession()
-  if (!admin || admin.role !== 'ADMIN') return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  if (!admin || admin.role !== 'ADMIN' || !admin.orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 
   const { pagoId, status, paidAt } = await req.json()
 
-  const pago = await prisma.payment.findUnique({ where: { id: pagoId } })
-  if (!pago || pago.orgId !== admin.orgId) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+  if (typeof pagoId !== 'string' || !pagoId) return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+  const pago = await prisma.payment.findFirst({ where: { id: pagoId, orgId: admin.orgId, user: { orgId: admin.orgId, role: 'VECINO' } } })
+  if (!pago) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
 
-  await prisma.payment.update({ where: { id: pagoId }, data: { status, paidAt: paidAt ? new Date(paidAt) : null } })
+  await prisma.payment.update({ where: { id: pagoId, orgId: admin.orgId }, data: { status, paidAt: paidAt ? new Date(paidAt) : null } })
   return NextResponse.json({ ok: true })
 }

@@ -29,6 +29,15 @@ export async function POST(req: Request) {
   if (!concepto || !monto || !fechaLimite || !Array.isArray(viviendaIds) || viviendaIds.length === 0) {
     return Response.json({ error: 'Datos incompletos' }, { status: 400 })
   }
+  if (viviendaIds.some((id) => typeof id !== 'string' || !id) || new Set(viviendaIds).size !== viviendaIds.length) {
+    return Response.json({ error: 'Destinatarios inválidos' }, { status: 400 })
+  }
+  const destinatariosValidos = await prisma.user.count({
+    where: { id: { in: viviendaIds }, orgId: user.orgId, role: 'VECINO', isActive: true },
+  })
+  if (destinatariosValidos !== viviendaIds.length) {
+    return Response.json({ error: 'Destinatarios no autorizados' }, { status: 403 })
+  }
 
   const totalVecinos = await prisma.user.count({
     where: { orgId: user.orgId, role: 'VECINO', isActive: true },

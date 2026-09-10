@@ -16,10 +16,12 @@ export default async function ProveedorHistorial({
   const ordenes = await (prisma as any).workOrder.findMany({
     where: {
       providerId: user.id,
+      orgId: user.orgId,
+      ticket: { orgId: user.orgId, reportedBy: { orgId: user.orgId } },
       status:     { in: ['COMPLETADA', 'CANCELADA'] },
     },
     orderBy: { createdAt: 'desc' },
-    include: { ticket: { include: { reportedBy: true } } },
+    include: { ticket: { include: { reportedBy: { select: { name: true, houseNumber: true } } } } },
   })
 
   const STATUS_CONFIG: Record<string, { color: string; bg: string; dot: string; label: string }> = {
