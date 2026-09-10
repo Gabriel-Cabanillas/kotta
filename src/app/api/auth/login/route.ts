@@ -14,16 +14,13 @@ import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { enviarCodigoVerificacion } from '@/lib/email'
-
-function generarCodigo(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
-}
+import { emitirCodigo, setOtpChallenge } from '@/lib/otp'
 
 export async function POST(req: Request) {
   try {
     const { email, password } = await req.json()
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || !email || typeof password !== 'string' || !password) {
       return NextResponse.json({ error: 'Correo y contraseña son requeridos' }, { status: 400 })
     }
 
@@ -42,27 +39,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Correo o contraseña incorrectos' }, { status: 401 })
     }
 
-    const codigo = generarCodigo()
-    const expira = new Date(Date.now() + 10 * 60 * 1000)
-
     const issued = await prisma.$transaction(async (tx) => {
       // No emitir un código si una desactivación ocurrió durante el login.
       const active = await tx.user.updateMany({ where: { id: user.id, isActive: true }, data: { isActive: true } })
       if (active.count !== 1) return false
-      await tx.verificationCode.updateMany({ where: { email, type: 'LOGIN', used: false }, data: { used: true } })
-      await tx.verificationCode.create({ data: { email, code: codigo, type: 'LOGIN', expiresAt: expira } })
-      return true
+      return emitirCodigo(tx, email, 'LOGIN')
     })
     if (!issued) return NextResponse.json({ error: 'Tu cuenta no está activada.' }, { status: 401 })
+    if ('retryAfter' in issued) {
+      return NextResponse.json({ error: 'Espera antes de solicitar otro código.' }, {
+        status: 429, headers: { 'Retry-After': String(issued.retryAfter) },
+      })
+    }
 
     // Intentar enviar correo — si falla, igual dejamos pasar (modo desarrollo)
     try {
-      await enviarCodigoVerificacion(email, codigo, 'login')
+      await enviarCodigoVerificacion(email, issued.code, 'login')
     } catch (emailError) {
       console.warn('⚠️ No se pudo enviar el correo (usa /api/auth/dev-codigo para obtener el código):', email)
     }
 
-    return NextResponse.json({ ok: true, email })
+    const response = NextResponse.json({ ok: true, email })
+    setOtpChallenge(response, issued.id)
+    return response
   } catch (error: any) {
     console.error('Error en login:', error)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })

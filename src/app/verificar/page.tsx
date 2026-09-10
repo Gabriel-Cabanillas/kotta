@@ -28,6 +28,7 @@ function VerificarForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
   const [reenvioTimer, setReenvioTimer] = useState(60)
+  const [reenviando, setReenviando] = useState(false)
   const inputs = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
@@ -95,9 +96,24 @@ function VerificarForm() {
   }
 
   const handleReenviar = async () => {
-    if (reenvioTimer > 0) return
+    if (reenvioTimer > 0 || reenviando) return
     const endpoint = tipo === 'REGISTRO' ? '/api/auth/registro/reenviar' : '/api/auth/login/reenviar'
-    setReenvioTimer(60)
+    setReenviando(true)
+    setError('')
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
+      })
+      const data = await res.json()
+      setReenvioTimer(Number(res.headers.get('Retry-After')) || 60)
+      if (!res.ok) { setError(data.error ?? 'No fue posible reenviar el código'); return }
+      setCodigo(['', '', '', '', '', ''])
+      inputs.current[0]?.focus()
+    } catch {
+      setError('No fue posible reenviar el código. Intenta nuevamente.')
+    } finally {
+      setReenviando(false)
+    }
   }
 
   return (
@@ -171,6 +187,7 @@ function VerificarForm() {
             ) : (
               <button
                 onClick={handleReenviar}
+                disabled={reenviando}
                 className="text-sm text-black hover:text-red font-medium transition-colors duration-200"
               >
                 Reenviar código

@@ -20,6 +20,7 @@
 import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
+import { BLOCKED_KOTTA_STATUSES } from '@/lib/kotta-subscriptions/status'
 
 export const getSession = cache(async () => {
   const cookieStore = cookies()
@@ -37,7 +38,10 @@ const session = await (prisma as any).session.findUnique({
       user: {
         select: {
           id: true, name: true, role: true, orgId: true, houseNumber: true, isActive: true,
-          org: { select: { id: true, name: true, slug: true } }
+          org: { select: {
+            id: true, name: true, slug: true, isActive: true,
+            kottaSubscription: { select: { status: true } },
+          } }
         }
       }
     }
@@ -51,6 +55,18 @@ const session = await (prisma as any).session.findUnique({
       !['KOTTA_STAFF', 'ADMIN', 'VECINO', 'PROVEEDOR', 'GUARDIA'].includes(session.user.role)) {
     await prisma.session.deleteMany({ where: { token } })
     return null
+  }
+
+  // Autorizar con el estado actual de la organización de la sesión, también
+  // cuando una API se invoca directamente sin pasar por un layout/middleware.
+  // No revocar la sesión: la reactivación debe recuperar el acceso y STAFF
+  // necesita seguir gestionando organizaciones bloqueadas.
+  if (session.user.role !== 'KOTTA_STAFF') {
+    const org = session.user.org
+    if (!session.user.orgId || !org || org.isActive !== true ||
+        BLOCKED_KOTTA_STATUSES.some((status) => status === org.kottaSubscription?.status)) {
+      return null
+    }
   }
 
   return session.user

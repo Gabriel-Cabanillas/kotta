@@ -16,17 +16,18 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(req: Request) {
-  if (process.env.NODE_ENV === 'production' && process.env.DEV_MODE !== 'true') {
+  if (process.env.NODE_ENV !== 'development' || process.env.DEV_MODE !== 'true' || process.env.VERCEL_ENV === 'production') {
     return NextResponse.json({ error: 'No disponible' }, { status: 404 })
   }
 
   const { searchParams } = new URL(req.url)
   const email = searchParams.get('email')
+  if (!email) return NextResponse.json({ error: 'Correo requerido' }, { status: 400 })
 
   const codigo = await (prisma as any).verificationCode.findFirst({
-    where:   { email, used: false },
+    where:   { email, type: { in: ['LOGIN', 'REGISTRO'] }, used: false, attempts: { lt: 5 }, expiresAt: { gt: new Date() } },
     orderBy: { createdAt: 'desc' },
   })
 
-  return NextResponse.json({ codigo: codigo?.code ?? null })
+  return NextResponse.json({ codigo: codigo?.code ?? null }, { headers: { 'Cache-Control': 'no-store' } })
 }

@@ -14,6 +14,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
+import { OTP_MAX_ATTEMPTS, OTP_CHALLENGE_COOKIE } from '@/lib/otp'
 
 class InvalidVerificationError extends Error {}
 
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   try {
     const { email, codigo, tipo } = await req.json()
 
-    if (typeof email !== 'string' || !email || typeof codigo !== 'string' || !codigo || !['LOGIN', 'REGISTRO'].includes(tipo)) {
+    if (typeof email !== 'string' || !email || typeof codigo !== 'string' || !/^\d{6}$/.test(codigo) || !['LOGIN', 'REGISTRO'].includes(tipo)) {
       return NextResponse.json(
         { error: 'Datos incompletos' },
         { status: 400 }
@@ -31,9 +32,10 @@ export async function POST(req: Request) {
     const token     = randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 días
 
-    await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // Bloquear primero el usuario, igual que toggle, para serializar la revocación.
-      // Cualquier fallo del código revierte también la activación de registro.
+      // REGISTRO permanece inactivo hasta consumir un código válido. Los errores
+      // de OTP retornan un resultado para confirmar el contador, sin rollback.
       const eligible = await tx.user.updateMany({
         where: {
           email,
@@ -41,23 +43,39 @@ export async function POST(req: Request) {
             ? { isActive: true, role: { in: ['KOTTA_STAFF', 'ADMIN', 'VECINO', 'PROVEEDOR', 'GUARDIA'] as const } }
             : { isActive: false, role: 'ADMIN' as const, orgId: { not: null } }),
         },
-        data: { isActive: true },
+        data: { isActive: tipo === 'LOGIN' },
       })
-      if (eligible.count !== 1) throw new InvalidVerificationError()
+      if (eligible.count !== 1) return 'invalid'
 
       const verification = await tx.verificationCode.findFirst({
-        where: { email, code: codigo, type: tipo, used: false, expiresAt: { gt: new Date() } },
-        select: { id: true },
+        where: { email, type: tipo }, orderBy: { createdAt: 'desc' },
+        select: { id: true, code: true, used: true, attempts: true, expiresAt: true },
       })
-      if (!verification) throw new InvalidVerificationError()
+      if (!verification || verification.used || verification.expiresAt <= new Date()) return 'invalid'
+      if (verification.attempts >= OTP_MAX_ATTEMPTS) return 'blocked'
+      if (verification.code !== codigo) {
+        const attempted = await tx.verificationCode.updateMany({
+          where: { id: verification.id, used: false, attempts: { lt: OTP_MAX_ATTEMPTS }, expiresAt: { gt: new Date() } },
+          data: { attempts: { increment: 1 } },
+        })
+        // attempts=5 inutiliza el código. No se reinicia nunca: un reenvío crea
+        // otra fila; used queda reservado para consumo/revocación definitivos.
+        return attempted.count === 1 && verification.attempts + 1 >= OTP_MAX_ATTEMPTS ? 'blocked' : 'invalid'
+      }
       const consumed = await tx.verificationCode.updateMany({
-        where: { id: verification.id, used: false, expiresAt: { gt: new Date() } },
+        where: { id: verification.id, used: false, attempts: { lt: OTP_MAX_ATTEMPTS }, expiresAt: { gt: new Date() } },
         data: { used: true },
       })
       if (consumed.count !== 1) throw new InvalidVerificationError()
+      if (tipo === 'REGISTRO') await tx.user.update({ where: { email }, data: { isActive: true } })
       const user = await tx.user.findUniqueOrThrow({ where: { email }, select: { id: true } })
       await tx.session.create({ data: { token, userId: user.id, expiresAt } })
+      return 'ok'
     })
+    if (result === 'blocked') {
+      return NextResponse.json({ error: 'Código bloqueado tras 5 intentos incorrectos. Solicita uno nuevo.' }, { status: 429 })
+    }
+    if (result !== 'ok') throw new InvalidVerificationError()
 
     // Determinar redirección
     let redirectTo = '/dashboard'
@@ -70,6 +88,7 @@ export async function POST(req: Request) {
       expires:  expiresAt,
       path:     '/',
     })
+    response.cookies.set(OTP_CHALLENGE_COOKIE, '', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/auth', maxAge: 0 })
 
     return response
   } catch (error: any) {

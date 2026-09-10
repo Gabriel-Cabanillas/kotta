@@ -16,10 +16,7 @@ import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { enviarCodigoVerificacion } from '@/lib/email'
-
-function generarCodigo(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
-}
+import { emitirCodigo, setOtpChallenge } from '@/lib/otp'
 
 function generarSlug(nombre: string): string {
   return nombre
@@ -78,7 +75,7 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(password, 12)
 
     // Crear organización y admin en transacción
-    const { user } = await (prisma as any).$transaction(async (tx: any) => {
+    const { issued } = await prisma.$transaction(async (tx) => {
       const org = await tx.organization.create({
         data: { slug, name: nombreCoto, isActive: true },
       })
@@ -106,32 +103,23 @@ export async function POST(req: Request) {
         },
       })
 
-      return { org, user }
-    })
-
-    // Generar y guardar código 2FA
-    const codigo = generarCodigo()
-    const expira = new Date(Date.now() + 10 * 60 * 1000) // 10 min
-
-    await (prisma as any).verificationCode.create({
-      data: {
-        email,
-        code:      codigo,
-        type:      'REGISTRO',
-        expiresAt: expira,
-      },
+      const issued = await emitirCodigo(tx, email, 'REGISTRO')
+      if ('retryAfter' in issued) throw new Error('Límite de emisión de códigos alcanzado')
+      return { issued }
     })
 
     // El registro y el código ya quedaron persistidos. Si Resend no permite
     // entregar al destinatario en desarrollo, el flujo continúa hacia
     // /verificar y el código puede consultarse mediante /api/auth/dev-codigo.
     try {
-      await enviarCodigoVerificacion(email, codigo, 'registro')
+      await enviarCodigoVerificacion(email, issued.code, 'registro')
     } catch {
       console.warn('No se pudo enviar el correo de registro; usa /api/auth/dev-codigo en desarrollo:', email)
     }
 
-    return NextResponse.json({ ok: true, email })
+    const response = NextResponse.json({ ok: true, email })
+    setOtpChallenge(response, issued.id)
+    return response
   } catch (error: any) {
     console.error('Error en registro:', error)
     return NextResponse.json(

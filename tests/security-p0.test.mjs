@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { randomBytes } from 'node:crypto'
+import { randomBytes, randomInt } from 'node:crypto'
 import ts from 'typescript'
 
 // Handlers/Server Components reales, transpilados solo en memoria. Ningún módulo
@@ -25,12 +25,14 @@ function load(file, { prisma = forbidden, session = admin, overrides = {}, expos
   const dependencies = {
     'next/server': { NextResponse: class extends Response {
       static json(body, init) { const response = Response.json(body, init); response.cookies = { set() {} }; return response }
+      static next() { return new Response(null, { headers: { 'x-middleware-next': '1' } }) }
+      static redirect(url) { return Response.redirect(url, 307) }
     } },
     'next/navigation': { redirect(path) { throw new Error(`REDIRECT:${path}`) } },
     'next/headers': { cookies: () => ({ get: () => ({ value: 'session-token' }) }) },
     'react': { cache: (fn) => fn, Suspense: 'Suspense' },
     'react/jsx-runtime': { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) },
-    'crypto': { randomBytes },
+    'crypto': { randomBytes, randomInt },
     '@prisma/client': enums,
     '@/lib/prisma': { prisma },
     '@/lib/auth': { getSession: async () => session },
@@ -49,6 +51,10 @@ function load(file, { prisma = forbidden, session = admin, overrides = {}, expos
   const exports = {}
   const mockRequire = (id) => {
     if (Object.hasOwn(dependencies, id)) return dependencies[id]
+    if (id === '@/lib/otp') return load('src/lib/otp.ts', { prisma, overrides })
+    if (id === '@/lib/kotta-subscriptions/status') return load('src/lib/kotta-subscriptions/status.ts', { prisma })
+    if (id === '@/lib/kotta-subscriptions/dates') return load('src/lib/kotta-subscriptions/dates.ts', { prisma })
+    if (id === '@/lib/kotta-subscriptions/pricing') return load('src/lib/kotta-subscriptions/pricing.ts', { prisma })
     if (id.startsWith('@/components/')) return { default: id }
     throw new Error(`Importación no aislada: ${id}`)
   }
@@ -89,8 +95,9 @@ function database(seed = {}) {
   const state = structuredClone(seed)
   const writes = []
   const db = {}
-  for (const model of ['user', 'organization', 'session', 'verificationCode', 'ticket', 'workOrder', 'cargo', 'cargoDestinatario', 'payment', 'pago', 'cuentaConectada', 'distribucionPago']) {
+  for (const model of ['user', 'organization', 'session', 'verificationCode', 'ticket', 'workOrder', 'cargo', 'cargoDestinatario', 'payment', 'pago', 'cuentaConectada', 'distribucionPago', 'asset', 'amenityReservation', 'accessLog', 'kottaSubscription', 'kottaSubscriptionEvent']) {
     state[model] ??= []
+    if (model === 'verificationCode') state[model].forEach(row => { row.attempts ??= 0; row.createdAt ??= new Date() })
     const rows = (args = {}) => state[model].filter((row) => matches(row, args.where))
     db[model] = {
       findMany: async (args = {}) => rows(args).map((row) => project(row, args)),
@@ -100,7 +107,7 @@ function database(seed = {}) {
       count: async (args = {}) => rows(args).length,
       groupBy: async () => [],
       aggregate: async () => ({ _sum: { monto: 0 } }),
-      create: async ({ data, ...args }) => { const row = { id: `${model}-${state[model].length}`, used: false, ...data }; state[model].push(row); writes.push(model); return project(row, args) },
+      create: async ({ data, ...args }) => { const row = { id: `${model}-${state[model].length}`, used: false, attempts: 0, createdAt: new Date(), ...data }; state[model].push(row); writes.push(model); return project(row, args) },
       createMany: async ({ data }) => { state[model].push(...data); writes.push(model); return { count: data.length } },
       update: async ({ where, data }) => { const row = rows({ where })[0]; assert.ok(row); Object.assign(row, data); writes.push(model); return row },
       updateMany: async ({ where, data }) => { const selected = rows({ where }); selected.forEach((row) => Object.assign(row, data)); if (selected.length) writes.push(model); return { count: selected.length } },
@@ -115,7 +122,7 @@ function database(seed = {}) {
   }
   return { db, state, writes }
 }
-const userRow = (user, extra = {}) => ({ ...user, email: `${user.id}@example.test`, password: hash, phone: null, houseNumber: '1', isActive: true, ...extra })
+const userRow = (user, extra = {}) => ({ ...user, org: { id: user.orgId, ...user.org, isActive: true, kottaSubscription: null }, email: `${user.id}@example.test`, password: hash, phone: null, houseNumber: '1', isActive: true, ...extra })
 const ticketRow = (extra = {}) => ({ id: 'ticket-a', orgId: 'org-a', reportedBy: userRow(resident), workOrder: null, createdAt: new Date(), ...extra })
 const orderRow = (extra = {}) => ({ id: 'order-a', orgId: 'org-a', providerId: provider.id, provider: userRow(provider), ticketId: 'ticket-a', ticket: ticketRow(), status: 'PENDIENTE', createdAt: new Date(), distribucionesPago: [], ...extra })
 
@@ -261,6 +268,129 @@ test('getSession: acepta los cinco roles oficiales activos; rechaza inactivos, e
   }
   const { db } = database({ session: [{ token: 'session-token', expiresAt: new Date(0), user: userRow(resident) }] })
   assert.equal(await load('src/lib/auth.ts', { prisma: db }).getSession(), null)
+})
+
+const commercialCases = [
+  { label: 'activa', isActive: true, status: 'ACTIVE', allowed: true },
+  { label: 'en mora sin suspensión efectiva', isActive: true, status: 'PAST_DUE', allowed: true },
+  { label: 'activa sin suscripción (compatibilidad)', isActive: true, status: null, allowed: true },
+  { label: 'inactiva con suscripción activa', isActive: false, status: 'ACTIVE', allowed: false },
+  { label: 'inactiva sin suscripción', isActive: false, status: null, allowed: false },
+  { label: 'suspendida', isActive: true, status: 'SUSPENDED', allowed: false },
+  { label: 'pendiente de activación', isActive: true, status: 'PENDING_ACTIVATION', allowed: false },
+  { label: 'cancelada', isActive: true, status: 'CANCELED', allowed: false },
+]
+const operationalCases = [
+  { role: 'ADMIN', route: 'activos/crear', body: { orgId: 'org-a', name: 'Activo', category: 'OTRO', status: 'ACTIVO' }, model: 'asset' },
+  { role: 'VECINO', route: 'reservas/cancelar', body: { reservaId: 'reservation-a' }, model: 'amenityReservation', row: { id: 'reservation-a', userId: 'actor-a' } },
+  { role: 'PROVEEDOR', route: 'proveedor/actualizar', body: { ordenId: 'order-a', status: 'CANCELADA' }, model: 'workOrder', row: orderRow({ providerId: 'actor-a' }) },
+  { role: 'GUARDIA', route: 'accesos/salida', body: { accessLogId: 'access-a' }, model: 'accessLog', row: { id: 'access-a', orgId: 'org-a' } },
+]
+function tenantSession(role, commercial) {
+  return { token: 'session-token', expiresAt: future(), user: userRow({ ...resident, id: 'actor-a', role }, {
+    org: { id: 'org-a', slug: 'coto-a', name: 'Coto A', isActive: commercial.isActive,
+      kottaSubscription: commercial.status ? { status: commercial.status } : null },
+  }) }
+}
+
+for (const operation of operationalCases) {
+  for (const commercial of commercialCases) {
+    test(`API directa + getSession real: ${operation.role}, organización ${commercial.label}`, async () => {
+      const { db, state, writes } = database({ session: [tenantSession(operation.role, commercial)], [operation.model]: operation.row ? [operation.row] : [] })
+      const auth = load('src/lib/auth.ts', { prisma: db })
+      const api = load(`src/app/api/${operation.route}/route.ts`, { prisma: db, overrides: { '@/lib/auth': auth } })
+      // No se ejecuta middleware ni layout. El orgId ajeno del cliente jamás
+      // debe rescatar una sesión cuya organización está bloqueada en servidor.
+      const response = await api.POST(request({ ...operation.body, ...(!commercial.allowed ? { orgId: 'org-active-foreign' } : {}) }))
+      if (commercial.allowed) {
+        assert.equal(response.status, 200)
+        assert.deepEqual(writes, [operation.model])
+      } else {
+        assert.ok([401, 403].includes(response.status))
+        assert.deepEqual(writes, [])
+      }
+      assert.equal(state.session.length, 1, 'La suspensión comercial no revoca la sesión')
+    })
+  }
+}
+
+test('suspensión y reactivación se observan en nuevas llamadas con la misma cookie', async () => {
+  const { db, state, writes } = database({ session: [tenantSession('ADMIN', commercialCases[0])] })
+  const auth = load('src/lib/auth.ts', { prisma: db })
+  assert.ok(await auth.getSession())
+  state.session[0].user.org.kottaSubscription.status = 'SUSPENDED'
+  assert.equal(await auth.getSession(), null)
+  state.session[0].user.org.kottaSubscription.status = 'ACTIVE'
+  assert.ok(await auth.getSession())
+  state.session[0].user.org.isActive = false
+  assert.equal(await auth.getSession(), null)
+  state.session[0].user.org.isActive = true
+  assert.ok(await auth.getSession())
+  assert.deepEqual(writes, [])
+})
+
+test('tenant sin organización válida falla cerrado; STAFF puede no tener organización', async () => {
+  for (const role of ['ADMIN', 'VECINO', 'PROVEEDOR', 'GUARDIA', 'KOTTA_STAFF']) {
+    for (const extra of [{ org: null }, { orgId: null, org: null }]) {
+      const session = tenantSession(role, commercialCases[0])
+      Object.assign(session.user, extra)
+      const { db } = database({ session: [session] })
+      assert.equal(Boolean(await load('src/lib/auth.ts', { prisma: db }).getSession()), role === 'KOTTA_STAFF')
+    }
+  }
+})
+
+test('reporte GET directo de organización suspendida rechaza sin consultar datos operativos', async () => {
+  const { db, writes } = database({ session: [tenantSession('PROVEEDOR', commercialCases[5])] })
+  db.workOrder = forbidden
+  const auth = load('src/lib/auth.ts', { prisma: db })
+  const api = load('src/app/api/proveedor/reporte/route.ts', { prisma: db, overrides: { '@/lib/auth': auth } })
+  assert.ok([401, 403].includes((await api.GET(new Request('http://kotta.test/api/proveedor/reporte'))).status))
+  assert.deepEqual(writes, [])
+})
+
+test('KOTTA_STAFF conserva su sesión en todos los estados comerciales', async () => {
+  for (const commercial of commercialCases) {
+    const { db } = database({ session: [tenantSession('KOTTA_STAFF', commercial)] })
+    assert.equal((await load('src/lib/auth.ts', { prisma: db }).getSession()).role, 'KOTTA_STAFF')
+  }
+})
+
+test('KOTTA_STAFF reactiva por la API real una organización suspendida/inactiva', async () => {
+  const { db, state, writes } = database({
+    session: [tenantSession('KOTTA_STAFF', commercialCases[3])],
+    organization: [{ id: 'org-target', isActive: false }],
+    kottaSubscription: [{ id: 'subscription-target', organizationId: 'org-target', status: 'SUSPENDED' }],
+  })
+  const auth = load('src/lib/auth.ts', { prisma: db })
+  const api = load('src/app/api/kotta-staff/condominios/[organizationId]/route.ts', { prisma: db, overrides: { '@/lib/auth': auth } })
+  const response = await api.POST(request({ action: 'reactivate' }), { params: { organizationId: 'org-target' } })
+  assert.equal(response.status, 200)
+  assert.equal(state.kottaSubscription[0].status, 'ACTIVE')
+  assert.deepEqual(writes, ['kottaSubscription', 'kottaSubscriptionEvent'])
+})
+
+test('middleware: raíz pública exacta, APIs privadas sin cookie reciben JSON 401', async () => {
+  const { middleware } = load('src/middleware.ts')
+  for (const pathname of ['/api/activos/crear', '/api/reservas/cancelar', '/api/proveedor/actualizar', '/api/accesos/salida', '/api/auth/login-extra', '/api/webhooks/stripe-extra']) {
+    const response = middleware({ nextUrl: { pathname }, url: `http://kotta.test${pathname}`, cookies: { get: () => undefined } })
+    assert.equal(response.status, 401)
+    assert.deepEqual(await response.json(), { error: 'No autorizado' })
+  }
+  const response = middleware({ nextUrl: { pathname: '/coto-a/admin' }, url: 'http://kotta.test/coto-a/admin', cookies: { get: () => undefined } })
+  assert.equal(response.headers.get('location'), 'http://kotta.test/sign-in')
+})
+
+test('middleware: accesos públicos y webhook conservados; cookie bloqueada no causa bucle de login', () => {
+  const { middleware } = load('src/middleware.ts')
+  for (const pathname of ['/', '/privacidad', '/terminos', '/sign-in', '/sign-up', '/verificar', '/invitacion/token', '/api/auth/login', '/api/auth/registro', '/api/auth/verificar', '/api/auth/logout', '/api/auth/dev-codigo', '/api/auth/invitacion/validar', '/api/auth/invitacion/activar', '/api/webhooks/stripe']) {
+    for (const token of [undefined, { value: 'session-token' }]) {
+      const response = middleware({ nextUrl: { pathname }, url: `http://kotta.test${pathname}`, cookies: { get: () => token } })
+      assert.equal(response.headers.get('x-middleware-next'), '1', pathname)
+    }
+  }
+  const response = middleware({ nextUrl: { pathname: '/api/accesos/salida' }, url: 'http://kotta.test/api/accesos/salida', cookies: { get: () => ({ value: 'session-token' }) } })
+  assert.equal(response.headers.get('x-middleware-next'), '1', 'Con cookie, la autorización efectiva corresponde a getSession en servidor')
 })
 
 test('desactivar revoca todas las sesiones y códigos; reactivar no restaura los anteriores', async () => {

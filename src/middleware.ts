@@ -16,6 +16,8 @@ import type { NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = [
   '/',
+  '/privacidad',
+  '/terminos',
   '/sign-in',
   '/sign-up',
   '/verificar',
@@ -25,22 +27,29 @@ const PUBLIC_ROUTES = [
   '/api/auth/verificar',
   '/api/auth/invitacion',
   '/api/auth/logout',
+  '/api/auth/dev-codigo',
+  '/api/webhooks/stripe',
 ]
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  const isPublic = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
+  const isPublic = PUBLIC_ROUTES.some((route) =>
+    pathname === route || (route !== '/' && pathname.startsWith(`${route}/`))
+  )
   const token    = req.cookies.get('kotta-session')?.value
 
- if (isPublic) {
-    // Si ya tiene sesión y va a login/registro → redirigir al dashboard
-    if (token && (pathname === '/sign-in' || pathname === '/sign-up')) {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
+  if (isPublic) {
+    // Una cookie presente no garantiza acceso. Redirigir por su presencia
+    // genera un bucle dashboard/sign-in para organizaciones bloqueadas.
     return NextResponse.next()
   }
 
-  if (!token) return NextResponse.redirect(new URL('/sign-in', req.url))
+  if (!token) {
+    if (pathname === '/api' || pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    return NextResponse.redirect(new URL('/sign-in', req.url))
+  }
 
   return NextResponse.next()
 }
