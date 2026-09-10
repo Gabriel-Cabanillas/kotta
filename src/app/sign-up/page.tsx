@@ -66,7 +66,7 @@ export default function RegistroPage() {
         return
       }
 
-      router.push(`/verificar?email=${encodeURIComponent(form.email)}&tipo=REGISTRO`)
+      router.replace(`/verificar?email=${encodeURIComponent(form.email)}&tipo=REGISTRO`)
     } finally {
       setLoading(false)
     }

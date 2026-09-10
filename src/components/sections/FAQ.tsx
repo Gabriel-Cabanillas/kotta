@@ -1,199 +1,38 @@
 'use client'
 
-/**
- * Seccion de preguntas frecuentes de la landing publica.
- * Contiene respuestas a objeciones comunes sobre usuarios, permanencia, activacion,
- * uso web, datos, guardias, multiples condominios y soporte.
- * Se relaciona con src/app/page.tsx, Pricing, CTAFinal y Navbar mediante el ancla FAQ.
- * Existe dentro de Kotta para resolver dudas comerciales antes del cierre de conversion.
- *
- * Paleta: migrado de acentos navy/sky (legacy, ver tailwind.config.ts) a la
- * paleta negro/blanco vigente. Iconografia circular unificada en negro + blanco.
- */
-
-import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
+import { useId, useState } from 'react'
+import { Mail, MessageCircle, Plus } from 'lucide-react'
 
 const FAQS = [
-  {
-    q: '¿Cuántos vecinos, guardias o proveedores puedo registrar?',
-    a: 'Todos los que necesites. Los planes no tienen límite de usuarios. Registra a todos tus vecinos, todos tus proveedores y todos tus guardias sin costo adicional.',
-  },
-  {
-    q: '¿Hay contrato de permanencia?',
-    a: 'No. La suscripción es mensual y puedes cancelar cuando quieras, sin penalizaciones ni trámites. Si decides salirte, tus datos quedan disponibles por 30 días adicionales para que los exportes.',
-  },
-  {
-    q: '¿Cómo se activa el condominio? ¿Es complicado?',
-    a: 'Nada complicado. Nos contactas, registramos tu condominio en el sistema y en menos de 24 horas recibes tu URL personalizada activa. Tú solo necesitas empezar a registrar a tus vecinos — el sistema hace el resto.',
-  },
-  {
-    q: '¿Mis vecinos necesitan descargar una app?',
-    a: 'No. KOTTA es 100% web. Tus vecinos entran desde cualquier navegador en su teléfono o computadora — sin descargar nada, sin crear cuentas complicadas. Solo reciben un correo con su acceso y listo.',
-  },
-  {
-    q: '¿Qué pasa con las fotos y los datos si cancelo?',
-    a: 'Tus datos son tuyos. Si cancelas, tienes 30 días para exportar todo: historial de tickets, órdenes de trabajo, fotos y registros de pago. Después de ese período, los datos se eliminan de forma segura.',
-  },
-  {
-    q: '¿El guardia necesita saber usar computadoras?',
-    a: 'No. El panel del guardia fue diseñado para usarse desde la caseta con acceso mínimo: usuario + PIN de 4 dígitos. La interfaz es la más simple del sistema — busca, valida y registra. Nada más.',
-  },
-  {
-    q: '¿Puedo tener más de un condominio?',
-    a: 'Sí. Cada condominio es independiente y el precio depende de su tamaño: Esencial por $3,500 MXN/mes hasta 150 viviendas, Pro por $6,500 MXN/mes hasta 300 viviendas y Enterprise por $12,000 MXN/mes para más de 300 viviendas. Si administras varios cotos, cada uno tiene su URL, sus usuarios y sus datos completamente separados.',
-  },
-  {
-    q: '¿Qué incluye el soporte?',
-    a: 'Soporte por WhatsApp y correo desde el día 1, sin costo adicional. En los primeros 7 días te acompañamos en la configuración inicial para que arranques sin fricciones.',
-  },
-]
+  ['¿Cómo se calcula el precio de Kotta?', 'De 1 a 100 viviendas cuesta $3,500 MXN + IVA al mes. De 101 a 300 se suman $15 por vivienda adicional a 100. De 301 a 600, el precio parte de $6,500 y se suman $18 por vivienda adicional a 300. Para más de 600 viviendas se prepara una cotización Enterprise personalizada.'],
+  ['¿Todas las funcionalidades están incluidas?', 'Sí. El precio cambia por el número de viviendas y la modalidad de contratación, no por módulos bloqueados.'],
+  ['¿Cuál es la diferencia entre mensual y contrato anual?', 'La modalidad mensual conserva el precio completo, no tiene permanencia y puede cancelarse sin penalización. El contrato anual incluye 10% de descuento y un compromiso de 12 meses. En ambos casos el pago sigue siendo mensual; el contrato anual no se paga por adelantado.'],
+  ['¿Cómo se contrata Kotta?', 'El condominio se registra y verifica su cuenta. Después, la contratación se formaliza directamente con Kotta y el servicio queda pendiente hasta completar la configuración comercial y la activación.'],
+  ['¿Cómo se paga la suscripción?', 'Los pagos se realizan mediante transferencia bancaria o SPEI a la cuenta indicada por Kotta durante la contratación.'],
+  ['¿Cuánto tiempo tengo para pagar?', 'Tienes 10 días naturales a partir de la fecha de la mensualidad correspondiente.'],
+  ['¿Qué pasa si me atraso?', 'Se aplica una penalización única del 5% sobre el monto vencido del servicio. Si pasan 15 días naturales después del vencimiento sin regularizar el pago, Kotta puede suspender temporalmente el servicio.'],
+  ['¿Puedo cancelar?', 'En la modalidad mensual puedes cancelar sin penalización por terminación. En el contrato anual existe un compromiso de 12 meses y una terminación anticipada puede generar una penalización conforme a las condiciones contractuales.'],
+  ['¿Necesito descargar una aplicación?', 'No. Kotta es una plataforma web y se utiliza desde el navegador de un teléfono o computadora.'],
+  ['¿Puedo administrar más de un condominio?', 'Sí. Cada condominio funciona como una organización independiente, con sus propios usuarios y datos. Su precio se calcula individualmente.'],
+] as const
 
-function FaqItem({ faq }: { faq: typeof FAQS[0] }) {
+function FaqItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false)
-
+  const id = useId()
   return (
-    <div
-      className={`border rounded-xl overflow-hidden transition-all duration-200 ${
-        open ? 'border-black bg-white shadow-card' : 'border-neutral-100 bg-white hover:border-black/30'
-      }`}
-    >
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
-        aria-expanded={open}
-      >
-        <span
-          className={`text-sm md:text-base leading-snug text-black transition-all ${
-            open ? 'font-semibold' : 'font-medium'
-          }`}
-        >
-          {faq.q}
-        </span>
-        <div
-          className={`w-7 h-7 rounded-full bg-black flex items-center justify-center flex-shrink-0 transition-transform duration-200 ${
-            open ? 'rotate-45' : ''
-          }`}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-          </svg>
-        </div>
-      </button>
-
-      <div className={`overflow-hidden transition-all duration-300 ${open ? 'max-h-48' : 'max-h-0'}`}>
-        <p className="px-6 pb-5 text-sm text-text-secondary leading-relaxed border-t border-neutral-100 pt-4">
-          {faq.a}
-        </p>
-      </div>
+    <div className="group border-b border-neutral-200">
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-controls={id} className="landing-focus flex w-full items-center justify-between gap-5 py-5 text-left sm:py-6"><span className={`text-sm transition-colors duration-300 sm:text-base ${open ? 'font-medium text-black' : 'font-medium text-neutral-700 group-hover:text-black'}`}>{question}</span><span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ${open ? 'rotate-45 border-black bg-black text-white' : 'border-neutral-200 text-black group-hover:border-black'}`}><Plus className="h-4 w-4" /></span></button>
+      <div id={id} className={`grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}><div className="overflow-hidden"><p className="max-w-2xl pb-6 pr-10 text-sm leading-6 text-neutral-500">{answer}</p></div></div>
     </div>
   )
 }
 
 export default function FAQ() {
-  const sectionRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.querySelectorAll('.reveal').forEach((el, i) => {
-              setTimeout(() => el.classList.add('visible'), i * 80)
-            })
-          }
-        })
-      },
-      { threshold: 0.1 }
-    )
-    if (sectionRef.current) observer.observe(sectionRef.current)
-    return () => observer.disconnect()
-  }, [])
-
   return (
-    <section id="faq" ref={sectionRef} className="py-24 md:py-32 bg-white">
-      <div className="container-kotta">
-
-        <div className="grid lg:grid-cols-5 gap-12 lg:gap-16">
-
-          {/* Header fijo — 2 cols */}
-          <div className="lg:col-span-2">
-            <div className="lg:sticky lg:top-28 reveal">
-              <div className="badge badge-dark mb-5">
-                <Image
-                  src="/mini-kotta.png"
-                  alt="Kotta"
-                  width={14}
-                  height={14}
-                  className="rounded-sm object-contain"
-                />
-                FAQ
-              </div>
-              <h2 className="font-display text-[2rem] md:text-[2.4rem] text-black mb-4">
-                Respuestas
-                antes de <span className="italic">que preguntes.</span>
-              </h2>
-              <p className="text-base text-text-secondary leading-relaxed mb-8">
-                Si tienes una duda que no está aquí, escríbenos directamente.
-                Respondemos en menos de 2 horas.
-              </p>
-
-              {/* Contacto directo */}
-              <div className="space-y-3">
-                <a
-                  href="https://wa.me/526699999999?text=Hola,%20tengo%20una%20pregunta%20sobre%20KOTTA"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-4 rounded-xl border border-border bg-white hover:border-black transition-colors group"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-green/10 flex items-center justify-center flex-shrink-0">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M3 21l1.65-3.8a9 9 0 113.4 2.9L3 21z"
-                        stroke="#25D366" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-black">WhatsApp</p>
-                    <p className="text-xs text-text-muted">Respuesta en menos de 2 hrs</p>
-                  </div>
-                  <svg className="ml-auto text-neutral-200 group-hover:text-black transition-colors" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </a>
-
-                <a
-                  href="mailto:hola@kotta.com.mx"
-                  className="flex items-center gap-3 p-4 rounded-xl border border-border bg-white hover:border-black transition-colors group"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-black/[0.06] flex items-center justify-center flex-shrink-0">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <rect x="2" y="4" width="20" height="16" rx="2" stroke="black" strokeWidth="1.8" fill="none"/>
-                      <path d="M2 8l10 6 10-6" stroke="black" strokeWidth="1.8" strokeLinecap="round"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-black">hola@kotta.com.mx</p>
-                    <p className="text-xs text-text-muted">Para consultas más detalladas</p>
-                  </div>
-                  <svg className="ml-auto text-neutral-200 group-hover:text-black transition-colors" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Preguntas — 3 cols */}
-          <div className="lg:col-span-3 space-y-3">
-            {FAQS.map((faq, i) => (
-              <div key={i} className="reveal" style={{ transitionDelay: `${i * 0.06}s` }}>
-                <FaqItem faq={faq} />
-              </div>
-            ))}
-          </div>
-
-        </div>
-
+    <section id="faq" className="bg-neutral-50 py-24 sm:py-28 md:py-36">
+      <div className="landing-shell grid gap-12 lg:grid-cols-[0.72fr_1.28fr] lg:gap-20">
+        <div className="landing-reveal"><div className="lg:sticky lg:top-28"><p className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">Preguntas frecuentes</p><h2 className="mt-4 text-3xl font-medium tracking-[-0.035em] text-black md:text-5xl">Información clara antes de comenzar.</h2><p className="mt-5 max-w-md text-sm leading-6 text-neutral-500">Si necesitas revisar tu caso, puedes hablar directamente con el equipo de Kotta.</p><div className="mt-8 flex flex-col gap-2 sm:flex-row lg:flex-col"><a href="https://wa.me/526699999999?text=Hola,%20tengo%20una%20pregunta%20sobre%20Kotta" target="_blank" rel="noopener noreferrer" className="landing-focus group inline-flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-black transition-all duration-300 hover:border-black"><MessageCircle className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />Hablar por WhatsApp</a><a href="mailto:hola@kotta.com.mx" className="landing-focus group inline-flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-black transition-all duration-300 hover:border-black"><Mail className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />hola@kotta.com.mx</a></div></div></div>
+        <div className="landing-reveal border-t border-neutral-200" style={{ transitionDelay: '100ms' }}>{FAQS.map(([question, answer]) => <FaqItem key={question} question={question} answer={answer} />)}</div>
       </div>
     </section>
   )

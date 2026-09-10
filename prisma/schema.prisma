@@ -92,6 +92,7 @@ enum ReservationStatus {
   CONFIRMADA
   CANCELADA
 }
+
 enum AmenityStatus {
   ACTIVA
   INACTIVA
@@ -129,6 +130,44 @@ enum TipoDestino {
   PROVEEDOR
 }
 
+enum KottaSubscriptionStatus {
+  PENDING_ACTIVATION
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELED
+}
+
+enum KottaBillingMode {
+  MONTHLY
+  ANNUAL
+}
+
+enum KottaSubscriptionEventType {
+  SUBSCRIPTION_CREATED
+  COMMERCIAL_CONFIGURED
+  PRICE_UPDATED
+  ACTIVATED
+  MARKED_PAST_DUE
+  PAYMENT_RECORDED
+  SUSPENDED
+  REACTIVATED
+  RENEWED
+  CANCELED
+}
+
+enum NotificationOrigin {
+  MANUAL
+  SYSTEM
+}
+
+enum NotificationEmailStatus {
+  DISABLED
+  PENDING
+  SENT
+  FAILED
+}
+
 // ─── Organization ────────────────────────────────────────────
 
 model Organization {
@@ -139,17 +178,19 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users      User[]
-  tickets    Ticket[]
-  workOrders WorkOrder[]
-  assets     Asset[]
-  payments   Payment[]
-  accessLogs AccessLog[]
-  amenities  Amenity[]
-  cuentaConectada CuentaConectada?
-  cargos Cargo[]
-  pagos  Pago[]
+  users              User[]
+  tickets            Ticket[]
+  workOrders         WorkOrder[]
+  assets             Asset[]
+  payments           Payment[]
+  accessLogs         AccessLog[]
+  amenities          Amenity[]
+  cuentaConectada    CuentaConectada?
+  cargos             Cargo[]
+  pagos              Pago[]
   distribucionesPago DistribucionPago[]
+  kottaSubscription  KottaSubscription?
+  notifications      Notification[]
 
   @@map("organizations")
 }
@@ -157,36 +198,112 @@ model Organization {
 // ─── User ────────────────────────────────────────────────────
 
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  password    String
-  name        String
-  phone       String?
-  role        Role
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  role      Role
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  orgId       String?
-  org         Organization? @relation(fields: [orgId], references: [id])
+  orgId String?
+  org   Organization? @relation(fields: [orgId], references: [id])
 
   houseNumber String?
 
-  ticketsReported    Ticket[]    @relation("ReportedBy")
-  workOrdersAssigned WorkOrder[] @relation("AssignedTo")
-  payments           Payment[]
-  accessLogsGuard    AccessLog[] @relation("GuardLog")
-  reservations       AmenityReservation[]
-  sessions           Session[]
-  cuentaConectada CuentaConectada?
-  cargosCreados       Cargo[]
-  cargosDestinatario  CargoDestinatario[]
-  pagosComoVecino     Pago[] @relation("PagosComoVecino")
-  pagosComoProveedor  Pago[] @relation("PagosComoProveedor")
-  notifications Notification[]
+  ticketsReported           Ticket[]                   @relation("ReportedBy")
+  workOrdersAssigned        WorkOrder[]                @relation("AssignedTo")
+  payments                  Payment[]
+  accessLogsGuard           AccessLog[]                @relation("GuardLog")
+  reservations              AmenityReservation[]
+  sessions                  Session[]
+  cuentaConectada           CuentaConectada?
+  cargosCreados             Cargo[]
+  cargosDestinatario        CargoDestinatario[]
+  pagosComoVecino           Pago[]                     @relation("PagosComoVecino")
+  pagosComoProveedor        Pago[]                     @relation("PagosComoProveedor")
+  notifications             Notification[]             @relation("NotificationRecipient")
+  notificationsSent         Notification[]             @relation("NotificationActor")
+  kottaSubscriptionPayments KottaSubscriptionPayment[] @relation("KottaPaymentRecordedBy")
+  kottaSubscriptionEvents   KottaSubscriptionEvent[]   @relation("KottaEventActor")
 
   @@index([orgId, role])
   @@map("users")
+}
+
+model KottaSubscription {
+  id                     String                     @id @default(cuid())
+  organizationId         String                     @unique
+  organization           Organization               @relation(fields: [organizationId], references: [id])
+  status                 KottaSubscriptionStatus    @default(PENDING_ACTIVATION)
+  housingUnits           Int?
+  billingMode            KottaBillingMode?
+  isEnterprise           Boolean                    @default(false)
+  baseMonthlyPrice       Decimal?                   @db.Decimal(12, 2)
+  discountRate           Decimal?                   @db.Decimal(5, 4)
+  contractedMonthlyPrice Decimal?                   @db.Decimal(12, 2)
+  vatRate                Decimal?                   @db.Decimal(5, 4)
+  pricingPolicyVersion   String                     @default("2026-01")
+  contractSignedAt       DateTime?
+  serviceStartedAt       DateTime?
+  renewalAt              DateTime?
+  nextInvoiceAt          DateTime?
+  nextPaymentDueAt       DateTime?
+  lastPaymentAt          DateTime?
+  suspendedAt            DateTime?
+  canceledAt             DateTime?
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  payments               KottaSubscriptionPayment[]
+  events                 KottaSubscriptionEvent[]
+
+  @@index([status])
+  @@index([billingMode])
+  @@index([nextPaymentDueAt])
+  @@index([renewalAt])
+  @@map("kotta_subscriptions")
+}
+
+model KottaSubscriptionPayment {
+  id             String            @id @default(cuid())
+  subscriptionId String
+  subscription   KottaSubscription @relation(fields: [subscriptionId], references: [id])
+  period         String
+  subtotal       Decimal           @db.Decimal(12, 2)
+  vatAmount      Decimal           @db.Decimal(12, 2)
+  lateFee        Decimal           @default(0) @db.Decimal(12, 2)
+  totalExpected  Decimal           @db.Decimal(12, 2)
+  amountReceived Decimal           @db.Decimal(12, 2)
+  paidAt         DateTime
+  bankReference  String?
+  notes          String?
+  recordedById   String
+  recordedBy     User              @relation("KottaPaymentRecordedBy", fields: [recordedById], references: [id])
+  createdAt      DateTime          @default(now())
+
+  @@unique([subscriptionId, period])
+  @@index([paidAt])
+  @@map("kotta_subscription_payments")
+}
+
+model KottaSubscriptionEvent {
+  id             String                     @id @default(cuid())
+  subscriptionId String
+  subscription   KottaSubscription          @relation(fields: [subscriptionId], references: [id])
+  type           KottaSubscriptionEventType
+  actorId        String?
+  actor          User?                      @relation("KottaEventActor", fields: [actorId], references: [id])
+  previousStatus KottaSubscriptionStatus?
+  newStatus      KottaSubscriptionStatus?
+  reason         String?
+  metadata       Json?
+  createdAt      DateTime                   @default(now())
+
+  @@index([subscriptionId, createdAt])
+  @@index([type, createdAt])
+  @@map("kotta_subscription_events")
 }
 
 // ─── Ticket ──────────────────────────────────────────────────
@@ -203,8 +320,8 @@ model Ticket {
   updatedAt   DateTime       @updatedAt
   resolvedAt  DateTime?
 
-  orgId        String
-  org          Organization @relation(fields: [orgId], references: [id])
+  orgId String
+  org   Organization @relation(fields: [orgId], references: [id])
 
   reportedById String
   reportedBy   User   @relation("ReportedBy", fields: [reportedById], references: [id])
@@ -224,7 +341,7 @@ model WorkOrder {
   status         WorkOrderStatus @default(PENDIENTE)
   description    String?
   cost           Decimal?        @db.Decimal(10, 2)
-  costNote String? // New
+  costNote       String? // New
   beforePhotoUrl String?
   afterPhotoUrl  String?
   notes          String?
@@ -232,17 +349,17 @@ model WorkOrder {
   updatedAt      DateTime        @updatedAt
   closedAt       DateTime?
 
-  orgId      String
-  org        Organization @relation(fields: [orgId], references: [id])
+  orgId String
+  org   Organization @relation(fields: [orgId], references: [id])
 
-  ticketId   String    @unique
-  ticket     Ticket    @relation(fields: [ticketId], references: [id])
+  ticketId String @unique
+  ticket   Ticket @relation(fields: [ticketId], references: [id])
 
   providerId String
-  provider   User      @relation("AssignedTo", fields: [providerId], references: [id])
+  provider   User   @relation("AssignedTo", fields: [providerId], references: [id])
 
-  accessLog  AccessLog?
-  pagos      Pago[]
+  accessLog          AccessLog?
+  pagos              Pago[]
   distribucionesPago DistribucionPago[]
 
   @@index([orgId, createdAt])
@@ -283,8 +400,8 @@ model Payment {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
-  orgId  String
-  org    Organization @relation(fields: [orgId], references: [id])
+  orgId String
+  org   Organization @relation(fields: [orgId], references: [id])
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
@@ -307,13 +424,13 @@ model AccessLog {
   notes       String?
   createdAt   DateTime    @default(now())
 
-  orgId   String
-  org     Organization @relation(fields: [orgId], references: [id])
+  orgId String
+  org   Organization @relation(fields: [orgId], references: [id])
 
   guardId String
   guard   User   @relation("GuardLog", fields: [guardId], references: [id])
 
-  workOrderId String?   @unique
+  workOrderId String?    @unique
   workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
 
   @@map("access_logs")
@@ -322,13 +439,13 @@ model AccessLog {
 // ─── Amenity ─────────────────────────────────────────────────
 
 model Amenity {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   description String?
   imageUrl    String?
 
   capacity        Int?
-  durationMinutes Int    @default(60)
+  durationMinutes Int  @default(60)
 
   startTime String @default("08:00")
   endTime   String @default("22:00")
@@ -384,8 +501,8 @@ model Session {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   @@map("sessions")
 }
@@ -411,20 +528,19 @@ enum CodeType {
   INVITACION
 }
 
-
 // ─── Flujo de Stripe ────────────────────────────────────────
 model CuentaConectada {
-  id                String              @id @default(cuid())
-  tipo              TipoCuentaConectada
-  stripeAccountId   String              @unique
-  chargesEnabled    Boolean             @default(false)
-  payoutsEnabled    Boolean             @default(false)
-  detailsSubmitted  Boolean             @default(false)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  id               String              @id @default(cuid())
+  tipo             TipoCuentaConectada
+  stripeAccountId  String              @unique
+  chargesEnabled   Boolean             @default(false)
+  payoutsEnabled   Boolean             @default(false)
+  detailsSubmitted Boolean             @default(false)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
-  orgId       String?       @unique
-  org         Organization? @relation(fields: [orgId], references: [id])
+  orgId String?       @unique
+  org   Organization? @relation(fields: [orgId], references: [id])
 
   proveedorId String? @unique
   proveedor   User?   @relation(fields: [proveedorId], references: [id])
@@ -442,53 +558,72 @@ model WebhookEvent {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  tipo      String
-  titulo    String
-  mensaje   String
-  leida     Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id               String                  @id @default(cuid())
+  tipo             String
+  origin           NotificationOrigin      @default(SYSTEM)
+  titulo           String
+  mensaje          String
+  href             String?
+  entityType       String?
+  entityId         String?
+  leida            Boolean                 @default(false)
+  readAt           DateTime?
+  emailStatus      NotificationEmailStatus @default(DISABLED)
+  emailAttemptedAt DateTime?
+  emailProviderId  String?
+  deduplicationKey String?
+  createdAt        DateTime                @default(now())
 
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation("NotificationRecipient", fields: [userId], references: [id])
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  actorId String?
+  actor   User?   @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   cargoId String?
   cargo   Cargo?  @relation(fields: [cargoId], references: [id])
 
-  @@index([userId, leida])
+  @@unique([userId, deduplicationKey])
+  @@index([userId, leida, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([emailStatus, createdAt])
   @@map("notifications")
 }
 
 // ─── Módulo de pagos (Fase 2) ──────────────────────────────────
 
 model Cargo {
-  id            String              @id @default(cuid())
-  concepto      String
-  monto         Decimal
-  fechaLimite   DateTime
-  tipo          TipoCargo
-  createdAt     DateTime            @default(now())
+  id          String    @id @default(cuid())
+  concepto    String
+  monto       Decimal
+  fechaLimite DateTime
+  tipo        TipoCargo
+  createdAt   DateTime  @default(now())
 
-  orgId         String
-  org           Organization        @relation(fields: [orgId], references: [id])
+  orgId String
+  org   Organization @relation(fields: [orgId], references: [id])
 
-  creadoPorId   String
-  creadoPor     User                @relation(fields: [creadoPorId], references: [id])
+  creadoPorId String
+  creadoPor   User   @relation(fields: [creadoPorId], references: [id])
 
-  destinatarios CargoDestinatario[]
-  pagos         Pago[]
+  destinatarios  CargoDestinatario[]
+  pagos          Pago[]
   notificaciones Notification[]
 
   @@map("cargos")
 }
 
 model CargoDestinatario {
-  id          String @id @default(cuid())
-  cargoId     String
-  cargo       Cargo  @relation(fields: [cargoId], references: [id])
+  id      String @id @default(cuid())
+  cargoId String
+  cargo   Cargo  @relation(fields: [cargoId], references: [id])
 
-  viviendaId  String
-  vivienda    User   @relation(fields: [viviendaId], references: [id])
+  viviendaId String
+  vivienda   User   @relation(fields: [viviendaId], references: [id])
 
   @@unique([cargoId, viviendaId])
   @@map("cargo_destinatarios")
@@ -513,14 +648,14 @@ model Pago {
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 
-  orgId       String
-  org         Organization @relation(fields: [orgId], references: [id])
+  orgId String
+  org   Organization @relation(fields: [orgId], references: [id])
 
-  cargoId     String?
-  cargo       Cargo?  @relation(fields: [cargoId], references: [id])
+  cargoId String?
+  cargo   Cargo?  @relation(fields: [cargoId], references: [id])
 
-  vecinoId    String?
-  vecino      User?   @relation("PagosComoVecino", fields: [vecinoId], references: [id])
+  vecinoId String?
+  vecino   User?   @relation("PagosComoVecino", fields: [vecinoId], references: [id])
 
   proveedorId String?
   proveedor   User?   @relation("PagosComoProveedor", fields: [proveedorId], references: [id])
@@ -540,12 +675,14 @@ model Pago {
   @@map("pagos")
 }
 
-/** Registro de auditoría de disputas de Stripe asociado a un único Pago. */
+/**
+ * Registro de auditoría de disputas de Stripe asociado a un único Pago.
+ */
 model DisputaStripe {
-  id              String   @id @default(cuid())
-  pagoId          String   @unique
-  pago            Pago     @relation(fields: [pagoId], references: [id])
-  stripeDisputeId String   @unique
+  id              String    @id @default(cuid())
+  pagoId          String    @unique
+  pago            Pago      @relation(fields: [pagoId], references: [id])
+  stripeDisputeId String    @unique
   monto           Decimal
   moneda          String
   motivo          String
@@ -553,32 +690,32 @@ model DisputaStripe {
   fechaLimite     DateTime?
   creadaEn        DateTime
   cerradaEn       DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([estadoStripe, fechaLimite])
   @@map("disputas_stripe")
 }
 
 model DistribucionPago {
-  id                  String       @id @default(cuid())
+  id                  String      @id @default(cuid())
   pagoOrigenId        String?
-  pagoOrigen          Pago?        @relation("PagoOrigenDistribuciones", fields: [pagoOrigenId], references: [id])
+  pagoOrigen          Pago?       @relation("PagoOrigenDistribuciones", fields: [pagoOrigenId], references: [id])
   destino             TipoDestino
   cuentaConectadaId   String
   monto               Decimal
-  montoOriginal       Decimal      @default(0)
+  montoOriginal       Decimal     @default(0)
   comisionEstimada    Decimal?
   estado              EstadoPago
-  stripeTransferId    String?      @unique
+  stripeTransferId    String?     @unique
   sourceTransactionId String?
-  origenManual        Boolean      @default(false)
+  origenManual        Boolean     @default(false)
   notaManual          String?
   workOrderId         String?
-  workOrder           WorkOrder?   @relation(fields: [workOrderId], references: [id])
+  workOrder           WorkOrder?  @relation(fields: [workOrderId], references: [id])
   referencia          String?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 
   orgId String
   org   Organization @relation(fields: [orgId], references: [id])
@@ -589,14 +726,14 @@ model DistribucionPago {
 }
 
 model ConciliacionPayoutMensual {
-  id                    String   @id @default(cuid())
-  periodo               String   @unique
-  totalEstimadoCobrado  Decimal
-  totalRealFacturado    Decimal?
-  diferencia            Decimal?
-  estado                String   @default("PENDIENTE")
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  periodo              String   @unique
+  totalEstimadoCobrado Decimal
+  totalRealFacturado   Decimal?
+  diferencia           Decimal?
+  estado               String   @default("PENDIENTE")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@map("conciliaciones_payout_mensual")
 }

@@ -45,14 +45,15 @@ export async function POST(req: Request) {
     const codigo = generarCodigo()
     const expira = new Date(Date.now() + 10 * 60 * 1000)
 
-    await (prisma as any).verificationCode.updateMany({
-      where: { email, type: 'LOGIN', used: false },
-      data:  { used: true },
+    const issued = await prisma.$transaction(async (tx) => {
+      // No emitir un código si una desactivación ocurrió durante el login.
+      const active = await tx.user.updateMany({ where: { id: user.id, isActive: true }, data: { isActive: true } })
+      if (active.count !== 1) return false
+      await tx.verificationCode.updateMany({ where: { email, type: 'LOGIN', used: false }, data: { used: true } })
+      await tx.verificationCode.create({ data: { email, code: codigo, type: 'LOGIN', expiresAt: expira } })
+      return true
     })
-
-    await (prisma as any).verificationCode.create({
-      data: { email, code: codigo, type: 'LOGIN', expiresAt: expira },
-    })
+    if (!issued) return NextResponse.json({ error: 'Tu cuenta no está activada.' }, { status: 401 })
 
     // Intentar enviar correo — si falla, igual dejamos pasar (modo desarrollo)
     try {

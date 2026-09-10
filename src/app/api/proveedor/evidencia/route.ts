@@ -19,7 +19,7 @@ cloudinary.config({
 
 export async function POST(req: Request) {
   const user = await getSession()
-  if (!user || user.role !== 'PROVEEDOR') {
+  if (!user || user.role !== 'PROVEEDOR' || !user.orgId) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -31,8 +31,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
   }
 
-  const orden = await (prisma as any).workOrder.findUnique({ where: { id: ordenId } })
-  if (!orden || orden.providerId !== user.id) {
+  if (typeof ordenId !== 'string') return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+  const orden = await prisma.workOrder.findFirst({ where: { id: ordenId, orgId: user.orgId, providerId: user.id, ticket: { orgId: user.orgId, reportedBy: { orgId: user.orgId } } } })
+  if (!orden) {
     return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
   }
 
@@ -56,7 +57,7 @@ export async function POST(req: Request) {
   // Guardar URL y marcar completada
   await (prisma as any).$transaction([
     (prisma as any).workOrder.update({
-      where: { id: ordenId },
+      where: { id: ordenId, orgId: user.orgId, providerId: user.id },
       data: {
         afterPhotoUrl: uploadResult.secure_url,
         status:        'COMPLETADA',
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
       },
     }),
     (prisma as any).ticket.update({
-      where: { id: orden.ticketId },
+      where: { id: orden.ticketId, orgId: user.orgId },
       data:  { status: 'RESUELTO', resolvedAt: new Date() },
     }),
   ])

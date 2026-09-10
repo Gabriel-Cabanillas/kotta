@@ -21,7 +21,7 @@ export default async function DashboardPage() {
 
   // El equipo interno no pertenece a un coto; debe resolverse antes de la
   // pantalla genérica de cuentas sin organización.
-  if (user.role === 'KOTTA_STAFF') redirect('/kotta-staff/conciliacion')
+  if (user.role === 'KOTTA_STAFF') redirect('/kotta-staff/condominios')
 
   if (!user.orgId) {
     return (

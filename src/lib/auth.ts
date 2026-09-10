@@ -36,7 +36,7 @@ const session = await (prisma as any).session.findUnique({
       expiresAt: true,
       user: {
         select: {
-          id: true, name: true, role: true, orgId: true, houseNumber: true,
+          id: true, name: true, role: true, orgId: true, houseNumber: true, isActive: true,
           org: { select: { id: true, name: true, slug: true } }
         }
       }
@@ -47,8 +47,9 @@ const session = await (prisma as any).session.findUnique({
     console.timeEnd('[getSession] db query')
 
   if (!session) return null
-  if (session.expiresAt < new Date()) {
-    await (prisma as any).session.delete({ where: { token } })
+  if (session.expiresAt <= new Date() || session.user.isActive !== true ||
+      !['KOTTA_STAFF', 'ADMIN', 'VECINO', 'PROVEEDOR', 'GUARDIA'].includes(session.user.role)) {
+    await prisma.session.deleteMany({ where: { token } })
     return null
   }
 

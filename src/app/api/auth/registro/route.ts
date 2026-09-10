@@ -94,6 +94,18 @@ export async function POST(req: Request) {
         },
       })
 
+      const subscription = await tx.kottaSubscription.create({
+        data: { organizationId: org.id, status: 'PENDING_ACTIVATION' },
+      })
+      await tx.kottaSubscriptionEvent.create({
+        data: {
+          subscriptionId: subscription.id,
+          type: 'SUBSCRIPTION_CREATED',
+          newStatus: 'PENDING_ACTIVATION',
+          reason: 'Suscripción comercial creada automáticamente durante el registro.',
+        },
+      })
+
       return { org, user }
     })
 
@@ -110,8 +122,14 @@ export async function POST(req: Request) {
       },
     })
 
-    // Enviar correo
-    await enviarCodigoVerificacion(email, codigo, 'registro')
+    // El registro y el código ya quedaron persistidos. Si Resend no permite
+    // entregar al destinatario en desarrollo, el flujo continúa hacia
+    // /verificar y el código puede consultarse mediante /api/auth/dev-codigo.
+    try {
+      await enviarCodigoVerificacion(email, codigo, 'registro')
+    } catch {
+      console.warn('No se pudo enviar el correo de registro; usa /api/auth/dev-codigo en desarrollo:', email)
+    }
 
     return NextResponse.json({ ok: true, email })
   } catch (error: any) {

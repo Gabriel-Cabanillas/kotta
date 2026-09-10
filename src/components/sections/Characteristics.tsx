@@ -1,357 +1,109 @@
-/**
- * CaracteristicasSection
- * Sección "Control total. Sin complicaciones" + "Un sistema, 4 roles".
- * Combina el grid de features del administrador (con mock de panel)
- * y el bloque de los 4 roles del sistema con texturas decorativas.
- *
- * Assets requeridos en /public:
- *  - /textura13.png  (debajo del heading "UN SISTEMA, 4 ROLES")
- *  - /textura12.png  (esquina inferior derecha, sangrado fuera del contenedor)
- */
+'use client'
 
-import Image from 'next/image'
-import {
-  LayoutDashboard,
-  Wrench,
-  Users,
-  CreditCard,
-  Package,
-  ClipboardList,
-  ChevronRight,
-  Check,
-  type LucideIcon,
-} from 'lucide-react'
+import { useState } from 'react'
+import { CalendarDays, ChevronRight, CreditCard, DoorOpen, LayoutDashboard, Search, TicketCheck, Users, Wrench, type LucideIcon } from 'lucide-react'
 
-// ────────────────────────────────────────────────────────────
-// Data
-// ────────────────────────────────────────────────────────────
+type ModuleId = 'operacion' | 'pagos' | 'tickets' | 'accesos' | 'amenidades' | 'usuarios'
+type Module = { id: ModuleId; label: string; icon: LucideIcon; title: string; description: string; action: string }
+type ProductRow = { title: string; detail: string; meta: string; status: string; tone: 'neutral' | 'warning' | 'success' | 'danger' }
 
-interface Feature {
-  icon: LucideIcon
-  title: string
-  description: string
-}
-
-const FEATURES: Feature[] = [
-  {
-    icon: LayoutDashboard,
-    title: 'Dashboard ejecutivo',
-    description: 'Tickets activos, morosos y gastos del mes en una sola vista.',
-  },
-  {
-    icon: Wrench,
-    title: 'Órdenes de trabajo',
-    description: 'Crea, asigna y cierra con costo real y foto del trabajo terminado.',
-  },
-  {
-    icon: Users,
-    title: 'Gestión de usuarios',
-    description: 'Registra vecinos, proveedores y guardias. El sistema invita por correo.',
-  },
-  {
-    icon: CreditCard,
-    title: 'Control de pagos',
-    description: 'Cuotas, historial y lista de morosos siempre actualizada.',
-  },
-  {
-    icon: Package,
-    title: 'Inventario de activos',
-    description: 'Portones, bombas y áreas comunes con historial de mantenimiento.',
-  },
-  {
-    icon: ClipboardList,
-    title: 'Directorio de proveedores',
-    description: 'Especialidad, calificación y disponibilidad en tiempo real.',
-  },
+const MODULES: Module[] = [
+  { id: 'operacion', label: 'Dashboard', icon: LayoutDashboard, title: 'La operación completa, a primera vista.', description: 'Pendientes, actividad y puntos de atención para decidir dónde actuar.', action: 'Ver actividad' },
+  { id: 'tickets', label: 'Tickets y órdenes', icon: TicketCheck, title: 'Cada reporte conserva su contexto.', description: 'Reporte, asignación, responsable, evidencia y cierre en un mismo flujo.', action: 'Nuevo ticket' },
+  { id: 'pagos', label: 'Pagos', icon: CreditCard, title: 'Cuotas y movimientos, sin perder el detalle.', description: 'El estado administrativo del condominio reunido en una vista clara.', action: 'Ver movimientos' },
+  { id: 'accesos', label: 'Accesos', icon: DoorOpen, title: 'La caseta sabe quién llega y por qué.', description: 'Invitaciones, visitantes y proveedores vinculados con su autorización.', action: 'Nuevo acceso' },
+  { id: 'amenidades', label: 'Amenidades', icon: CalendarDays, title: 'Reservas ordenadas por espacio y horario.', description: 'Disponibilidad, solicitudes y reglas visibles para toda la comunidad.', action: 'Nueva reserva' },
+  { id: 'usuarios', label: 'Usuarios', icon: Users, title: 'Cada persona en el rol correcto.', description: 'Residentes, proveedores y guardias organizados dentro del condominio.', action: 'Agregar usuario' },
 ]
 
-const STATS = [
-  { label: 'Tickets activos', value: '12', sub: '3 sin asignar', className: 'text-green' },
-  { label: 'Morosos', value: '4', sub: 'de 48 vecinos', className: 'text-red' },
-  { label: 'Activos OK', value: '23', sub: '2 en revisión', className: 'text-white' },
-] as const
-
-const MODULES: { icon: LucideIcon; label: string }[] = [
-  { icon: LayoutDashboard, label: 'Dashboard ejecutivo' },
-  { icon: Wrench, label: 'Órdenes de trabajo' },
-  { icon: Users, label: 'Gestión de usuarios' },
-  { icon: CreditCard, label: 'Control de pagos' },
-  { icon: Package, label: 'Inventario de activos' },
-]
-
-interface Role {
-  code: string
-  name: string
-  description: string
-  items: string[]
-  avatarBg: string
-  avatarText: string
+const ROWS: Record<ModuleId, ProductRow[]> = {
+  operacion: [
+    { title: 'Fuga en cisterna norte', detail: 'Orden #0089 · Servicios hidráulicos', meta: 'Hoy, 10:32', status: 'En proceso', tone: 'warning' },
+    { title: 'Reserva de terraza', detail: 'Casa 18 · 18:00–22:00', meta: 'Sábado', status: 'Confirmada', tone: 'success' },
+    { title: 'Acceso de proveedor', detail: 'Mantenimiento de portón', meta: 'Hoy, 09:18', status: 'Validado', tone: 'success' },
+    { title: 'Luminaria en acceso', detail: 'Ticket #0091 · Sin asignar', meta: 'Ayer', status: 'Nuevo', tone: 'neutral' },
+  ],
+  tickets: [
+    { title: 'Luminaria en acceso', detail: 'Reportó Casa 06', meta: '#0091', status: 'Nuevo', tone: 'neutral' },
+    { title: 'Fuga en cisterna norte', detail: 'Asignada a Servicios hidráulicos', meta: '#0089', status: 'En proceso', tone: 'warning' },
+    { title: 'Portón secundario', detail: 'Evidencia y costo registrados', meta: '#0087', status: 'Cerrado', tone: 'success' },
+    { title: 'Poda de área común', detail: 'Proveedor por asignar', meta: '#0086', status: 'En revisión', tone: 'neutral' },
+  ],
+  pagos: [
+    { title: 'Cuota de mantenimiento', detail: 'Casa 24 · Agosto', meta: '$2,500', status: 'Pagado', tone: 'success' },
+    { title: 'Cuota de mantenimiento', detail: 'Casa 08 · Agosto', meta: '$2,500', status: 'Vencido', tone: 'danger' },
+    { title: 'Reparación extraordinaria', detail: 'Casa 31', meta: '$850', status: 'Pagado', tone: 'success' },
+    { title: 'Cuota de mantenimiento', detail: 'Casa 16 · Agosto', meta: '$2,500', status: 'Pendiente', tone: 'warning' },
+  ],
+  accesos: [
+    { title: 'María López', detail: 'Visita · Casa 14', meta: '10:42', status: 'Dentro', tone: 'warning' },
+    { title: 'Servicios hidráulicos', detail: 'Proveedor · Orden #0089', meta: '09:18', status: 'Validado', tone: 'success' },
+    { title: 'Carlos Ruiz', detail: 'Visita · Casa 03', meta: '08:56', status: 'Salida', tone: 'neutral' },
+    { title: 'Paquetería', detail: 'Entrega · Casa 27', meta: '08:40', status: 'Salida', tone: 'neutral' },
+  ],
+  amenidades: [
+    { title: 'Terraza principal', detail: 'Casa 18 · Laura M.', meta: 'Sáb 22', status: 'Confirmada', tone: 'success' },
+    { title: 'Cancha', detail: 'Casa 07 · Roberto S.', meta: 'Dom 23', status: 'Confirmada', tone: 'success' },
+    { title: 'Salón común', detail: 'Casa 32 · Elena V.', meta: 'Vie 28', status: 'Pendiente', tone: 'warning' },
+    { title: 'Terraza principal', detail: 'Casa 11 · Daniel A.', meta: 'Sáb 29', status: 'Pendiente', tone: 'warning' },
+  ],
+  usuarios: [
+    { title: 'Laura Martínez', detail: 'laura@lospinos.mx', meta: 'ADMIN', status: 'Activa', tone: 'success' },
+    { title: 'Mario López', detail: 'Proveedor · Plomería', meta: 'PROVEEDOR', status: 'Activo', tone: 'success' },
+    { title: 'Roberto Díaz', detail: 'Caseta principal', meta: 'GUARDIA', status: 'Activo', tone: 'success' },
+    { title: 'Ana Martínez', detail: 'Casa 22', meta: 'VECINO', status: 'Pendiente', tone: 'warning' },
+  ],
 }
 
-const ROLES: Role[] = [
-  {
-    code: 'AD',
-    name: 'Administrador',
-    description: 'Centro de operaciones. Control total del condominio.',
-    items: [
-      'Dashboard + tickets + pagos',
-      'Órdenes con evidencia fotográfica',
-      'Gestión de todos los roles',
-      'Reportes ejecutivos mensuales',
-    ],
-    avatarBg: 'bg-neutral-200',
-    avatarText: 'text-navy',
-  },
-  {
-    code: 'VE',
-    name: 'Vecino',
-    description: 'Simple y sin ruido. Solo lo que el vecino necesita.',
-    items: [
-      'Crear reportes con foto',
-      'Seguimiento en tiempo real',
-      'Pagos y reserva de amenidades',
-      'Directorio de la comunidad',
-    ],
-    avatarBg: 'bg-green/15',
-    avatarText: 'text-green',
-  },
-  {
-    code: 'PR',
-    name: 'Proveedor',
-    description: 'Diseñado para usarse en campo. Rápido y directo.',
-    items: [
-      'Órdenes asignadas con detalle',
-      'Subir evidencia para cerrar',
-      'Historial y calificaciones',
-      'Disponibilidad configurable',
-    ],
-    avatarBg: 'bg-yellow/15',
-    avatarText: 'text-[#C9791F]',
-  },
-  {
-    code: 'GU',
-    name: 'Guardia',
-    description: 'La interfaz más simple. Control de accesos desde la caseta.',
-    items: [
-      'Validar y registrar accesos',
-      'Bitácora del turno en vivo',
-      'Login rápido con PIN',
-      'Alertas de visitantes',
-    ],
-    avatarBg: 'bg-red/15',
-    avatarText: 'text-red',
-  },
-]
+const STATUS_STYLE = {
+  neutral: 'bg-neutral-100 text-neutral-500',
+  warning: 'bg-yellow/10 text-[#9A6A00]',
+  success: 'bg-green/10 text-[#16852B]',
+  danger: 'bg-red/10 text-[#C43F37]',
+} as const
 
-// ────────────────────────────────────────────────────────────
-// Subcomponentes
-// ────────────────────────────────────────────────────────────
-
-function FeatureCell({ feature, index }: { feature: Feature; index: number }) {
-  const Icon = feature.icon
-  const col = index % 2
-  const row = Math.floor(index / 2)
-  const isLastCol = col === 1
-  const isLastRow = row === 2
+export default function Characteristics() {
+  const [activeId, setActiveId] = useState<ModuleId>('operacion')
+  const active = MODULES.find((module) => module.id === activeId) ?? MODULES[0]
+  const activeRows = ROWS[activeId]
 
   return (
-    <div
-      className={[
-        'p-6 md:p-7',
-        !isLastCol ? 'md:border-r-2 md:border-black' : '',
-        !isLastRow ? 'border-b-2 border-black' : '',
-      ].join(' ')}
-    >
-      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-black">
-        <Icon className="h-5 w-5 text-white" strokeWidth={1.75} />
-      </div>
-      <h3 className="mb-1.5 font-gotham text-[0.9375rem] font-medium text-neutral-900">
-        {feature.title}
-      </h3>
-      <p className="text-sm leading-snug text-neutral-400">{feature.description}</p>
-    </div>
-  )
-}
-
-function DashboardMock() {
-  return (
-    <div className="w-full max-w-[520px]">
-      {/* Browser chrome */}
-      <div className="mb-4 flex items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-red" />
-          <span className="h-2.5 w-2.5 rounded-full bg-yellow" />
-          <span className="h-2.5 w-2.5 rounded-full bg-green" />
-        </div>
-        <div className="flex-1 truncate rounded-full border border-neutral-100 px-4 py-1.5 text-xs text-neutral-400">
-          kotta.com.mx/residencial-los-pinos/admin
+    <section id="producto" className="overflow-hidden bg-white py-24 sm:py-28 md:py-36">
+      <div className="landing-shell">
+        <div className="grid gap-8 lg:grid-cols-[1fr_0.68fr] lg:items-end">
+          <div className="landing-reveal"><p className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">Dentro de Kotta</p><h2 className="mt-4 max-w-4xl text-4xl font-medium leading-[1.04] tracking-[-0.045em] text-black sm:text-5xl md:text-7xl">Un producto para operar, no solo para consultar.</h2></div>
+          <p className="landing-reveal max-w-lg text-base leading-7 text-neutral-500 lg:pb-2" style={{ transitionDelay: '100ms' }}>Cada módulo comparte el contexto del condominio. Lo que se reporta, se decide y se resuelve forma parte de la misma operación.</p>
         </div>
       </div>
 
-      {/* Panel card */}
-      <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card ">
-        <div className="flex items-center justify-between px-6 pt-6">
-          <div>
-            <p className="text-xs text-neutral-400">Residencial Los Pinos</p>
-            <p className="font-gotham text-lg font-medium text-neutral-900">
-              Panel del administrador
-            </p>
-          </div>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-xs font-medium text-navy">
-            AD
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 px-6 pb-6 pt-5">
-          {STATS.map((stat) => (
-            <div key={stat.label} className="rounded-xl bg-black px-3.5 py-4">
-              <p className="text-[0.6875rem] text-neutral-400">{stat.label}</p>
-              <p className={`mt-1 font-gotham text-2xl font-medium ${stat.className}`}>
-                {stat.value}
-              </p>
-              <p className="mt-1 text-[0.6875rem] text-neutral-400">{stat.sub}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="section-divider" />
-
-        {/* Módulos disponibles */}
-        <div className="px-6 pb-2 pt-5">
-          <p className="text-xs font-medium tracking-[0.08em] text-neutral-400">
-            MÓDULOS DISPONIBLES
-          </p>
-        </div>
-
-        <div className="relative h-[210px] overflow-hidden">
-          <ul className="divide-y divide-neutral-100 px-6">
-            {MODULES.map((mod) => {
-              const Icon = mod.icon
-              return (
-                <li key={mod.label} className="flex items-center justify-between py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-black">
-                      <Icon className="h-4 w-4 text-white" strokeWidth={1.75} />
-                    </div>
-                    <span className="text-sm text-neutral-900">{mod.label}</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-neutral-400" />
-                </li>
-              )
-            })}
-          </ul>
-          {/* Fade + corte de la última fila, tal como en el diseño de referencia */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function RoleCard({ role, className = '' }: { role: Role; className?: string }) {
-  return (
-    <div className={`card relative h-[450px] overflow-hidden rounded-3xl ${className}`}>
-      <div className="mb-5 flex items-center gap-3">
-        <div
-          className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-medium ${role.avatarBg} ${role.avatarText}`}
-        >
-          {role.code}
-        </div>
-        <h3 className="font-gotham text-lg font-medium text-neutral-900">{role.name}</h3>
-      </div>
-
-      <p className="mb-6 text-sm leading-relaxed text-neutral-400">{role.description}</p>
-
-      <ul className="space-y-4">
-        {role.items.map((item) => (
-          <li key={item} className="flex items-start gap-2.5">
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-neutral-900" strokeWidth={2} />
-            <span className="text-sm leading-snug text-neutral-900">{item}</span>
-          </li>
-        ))}
-      </ul>
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white to-transparent" />
-    </div>
-  )
-}
-
-// ────────────────────────────────────────────────────────────
-// Sección principal
-// ────────────────────────────────────────────────────────────
-
-export default function CaracteristicasSection() {
-  return (
-    <section id='caracteristicas' className="bg-white py-24 md:py-32">
-      {/* ── Bloque 1: Features del administrador ─────────────── */}
-      <div className="container-kotta">
-
-        <div className="mb-14 max-w-xl md:-ml-[70px]">
-
-          <h2 className="font-gotham text-4xl text-neutral-900 md:text-5xl">
-            <span className="font-medium">Control total.</span>
-            <br />
-            <span className="font-light text-neutral-400">Sin complicaciones</span>
-          </h2>
-          <p className="mt-4 text-sm italic leading-relaxed text-neutral-400">
-            “Todo lo que necesitas para administrar tu condominio está en un solo panel.
-            Tickets, pagos, activos y proveedores en tiempo real.”
-          </p>
-        </div>
-
-        <div className="grid gap-12 md:grid-cols-2 md:items-center md:-ml-[70px]">
-          <div className="grid grid-cols-1 sm:grid-cols-2 border-black">
-            {FEATURES.map((feature, i) => (
-              <FeatureCell key={feature.title} feature={feature} index={i} />
-            ))}
+      <div className="mt-14 border-y border-neutral-200 bg-[#F3F3F1] py-8 sm:mt-16 md:mt-20 md:py-14">
+        <div className="landing-shell">
+          <div className="landing-reveal overflow-x-auto pb-2" role="tablist" aria-label="Módulos de Kotta">
+            <div className="flex min-w-max gap-1">{MODULES.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" aria-selected={activeId === id} onClick={() => setActiveId(id)} className={`landing-focus flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-300 ${activeId === id ? 'bg-black text-white shadow-sm' : 'text-neutral-500 hover:bg-white hover:text-black'}`}><Icon className={`h-4 w-4 transition-transform duration-300 ${activeId === id ? 'scale-100' : 'scale-90'}`} />{label}</button>)}</div>
           </div>
 
-          <div className="flex justify-center md:justify-end md:translate-x-[20px] lg:translate-x-[40px]">
-            <DashboardMock />
-          </div>
-        </div>
-      </div>
+          <div className="landing-reveal mt-6 overflow-hidden rounded-[22px] border border-black/15 bg-[#171717] p-1.5 shadow-[0_34px_90px_rgba(0,0,0,0.18)] sm:p-2 md:mt-8" data-reveal="scale" style={{ transitionDelay: '100ms' }}>
+            <div className="mb-1.5 flex h-8 items-center gap-1.5 px-3"><span className="h-2 w-2 rounded-full bg-white/20" /><span className="h-2 w-2 rounded-full bg-white/20" /><span className="h-2 w-2 rounded-full bg-white/20" /><span className="ml-3 hidden text-[9px] text-white/30 sm:block">kotta.com.mx/residencial-los-pinos/admin</span></div>
+            <div className="grid min-h-[590px] overflow-hidden rounded-2xl bg-[#FAFAF9] lg:grid-cols-[218px_1fr]">
+              <aside className="hidden bg-black p-5 text-white lg:flex lg:flex-col">
+                <img src="/Logocompletowhite.svg" alt="Kotta" className="h-7 w-auto self-start" />
+                <p className="mt-8 px-3 text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Residencial Los Pinos</p>
+                <nav className="mt-3 space-y-1">{MODULES.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => setActiveId(id)} className={`group relative flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[11px] font-medium transition-all duration-200 ${activeId === id ? 'bg-white/[0.09] text-white' : 'text-white/40 hover:translate-x-0.5 hover:bg-white/[0.05] hover:text-white/80'}`}>{activeId === id && <span className="absolute -left-5 h-5 w-[3px] rounded-r-full bg-red" />}<Icon className="h-3.5 w-3.5" />{label}</button>)}</nav>
+                <div className="mt-auto border-t border-white/10 pt-4 text-[10px] text-white/30">Panel del administrador</div>
+              </aside>
 
-      {/* ── Bloque 2: Un sistema, 4 roles ─────────────────────── */}
-      <div className="container-kotta relative mt-32 md:mt-44">
-       
+              <div key={activeId} className="product-panel-enter min-w-0 p-5 sm:p-7 md:p-9">
+                <header className="flex items-start justify-between gap-5"><div><p className="text-[9px] font-medium uppercase tracking-[0.1em] text-neutral-400">Lunes, 24 de agosto</p><h3 className="mt-2 text-2xl font-medium tracking-[-0.025em] text-black sm:text-[2rem]">{activeId === 'operacion' ? <>Buenos días, Laura<span className="text-red">.</span></> : active.label}</h3></div><div className="flex items-center gap-2"><button type="button" aria-label="Buscar" className="landing-focus hidden h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-400 sm:flex"><Search className="h-3.5 w-3.5" /></button><div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-[10px] font-medium text-white">LM</div></div></header>
 
-        <div className="relative z-10 grid gap-10 md:grid-cols-2 md:gap-16">
-          {/* Heading + CTA */}
-          <div className="flex flex-col justify-between md:-translate-x-[70px]">
-            <h2 className="font-gotham text-6xl font-medium leading-[0.95] tracking-tight text-neutral-900 md:text-8xl">
-              UN
-              <br />
-              SISTEMA,
-              <br />
-              4
-              <br />
-              ROLES
-            </h2>
+                <div className="mt-7 flex flex-col justify-between gap-4 border-b border-neutral-200 pb-6 sm:flex-row sm:items-end"><div><p className="text-lg font-medium text-black">{active.title}</p><p className="mt-2 max-w-xl text-xs leading-5 text-neutral-500">{active.description}</p></div><span className="w-fit rounded-xl bg-black px-3.5 py-2 text-[11px] font-medium text-white">{active.action}</span></div>
 
-            <div className="mt-24 md:mt-0">
-              <p className="font-gotham text-xl font-medium text-neutral-900">
-                Un plan. Todos los roles incluidos.
-              </p>
-              <p className="mt-2 text-sm text-neutral-400">
-                Sin cargos extra por número de usuarios o roles activos.
-              </p>
-              <a href="#precio" className="btn-ghost mt-6">
-                Ver qué incluyen el plan →
-              </a>
-            </div>
-          </div>
+                <div className="mt-6 grid grid-cols-2 gap-3 xl:grid-cols-4">{activeId === 'operacion' ? [['12', 'Tickets activos', '3 sin atender', 'bg-yellow'], ['48', 'Vecinos activos', '4 con pendiente', 'bg-red'], ['4', 'Pagos vencidos', 'Revisar', 'bg-red'], ['2', 'Activos urgentes', 'Requieren atención', 'bg-yellow']].map(([value, label, detail, dot]) => <div key={label} className="rounded-xl border border-neutral-200 bg-white p-3.5"><p className="text-xl font-medium text-black">{value}</p><p className="mt-1 text-[10px] text-neutral-400">{label}</p><p className="mt-3 flex items-center gap-1.5 text-[9px] text-neutral-500"><span className={`h-1.5 w-1.5 rounded-full ${dot}`} />{detail}</p></div>) : [['4', 'Registros recientes'], ['1', 'Requiere atención'], ['Hoy', 'Última actividad'], ['Activo', 'Estado del módulo']].map(([value, label]) => <div key={label} className="rounded-xl border border-neutral-200 bg-white p-3.5"><p className="text-lg font-medium text-black">{value}</p><p className="mt-1 text-[10px] text-neutral-400">{label}</p></div>)}</div>
 
-          {/* Cards en cascada */}
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-            <div className="flex flex-col gap-10">
-              <RoleCard role={ROLES[0]} />
-              <RoleCard role={ROLES[2]} />
-            </div>
-            <div className="flex flex-col gap-10 sm:mt-28">
-              <RoleCard role={ROLES[1]} />
-              <RoleCard role={ROLES[3]} />
+                <div className="mt-6 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+                  <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3.5 sm:px-5"><p className="text-[11px] font-medium text-black">{activeId === 'operacion' ? 'Actividad reciente' : active.label}</p><span className="text-[9px] text-neutral-400">Ver todos →</span></div>
+                  <div className="divide-y divide-neutral-100">{activeRows.map((row) => <div key={`${row.title}-${row.meta}`} className="grid gap-2 px-4 py-3.5 transition-colors hover:bg-neutral-50 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:px-5"><div className="min-w-0"><p className="truncate text-[11px] font-medium text-black">{row.title}</p><p className="mt-1 truncate text-[9px] text-neutral-400">{row.detail}</p></div><span className="font-mono text-[9px] text-neutral-400">{row.meta}</span><span className={`w-fit rounded-full px-2.5 py-1 text-[9px] font-medium ${STATUS_STYLE[row.tone]}`}>{row.status}</span></div>)}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

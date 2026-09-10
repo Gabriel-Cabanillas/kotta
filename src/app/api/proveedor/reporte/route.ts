@@ -16,7 +16,7 @@ export const runtime = 'nodejs'
 
 export async function GET(req: Request) {
   const user = await getSession()
-  if (!user || user.role !== 'PROVEEDOR') {
+  if (!user || user.role !== 'PROVEEDOR' || !user.orgId) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -34,6 +34,8 @@ export async function GET(req: Request) {
   const ordenes = await (prisma as any).workOrder.findMany({
     where: {
       providerId: user.id,
+      orgId: user.orgId,
+      ticket: { orgId: user.orgId, reportedBy: { orgId: user.orgId } },
       status:     'COMPLETADA',
       createdAt:  { gte: desde, lt: hasta },
     },

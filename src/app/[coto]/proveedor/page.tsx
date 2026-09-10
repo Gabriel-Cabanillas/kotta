@@ -26,11 +26,13 @@ export default async function ProveedorDashboard({
   const ordenes = await (prisma as any).workOrder.findMany({
     where: {
       providerId: user.id,
+      orgId: user.orgId,
+      ticket: { orgId: user.orgId, reportedBy: { orgId: user.orgId } },
       status:     { in: ['PENDIENTE', 'EN_PROCESO'] },
     },
     orderBy: { createdAt: 'desc' },
     include: {
-      ticket: { include: { reportedBy: true } },
+      ticket: { include: { reportedBy: { select: { name: true, houseNumber: true } } } },
     },
   })
 

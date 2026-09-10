@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import NotificationBell from '@/components/notifications/NotificationBell'
 
 function currentMonthISO() {
   const now = new Date()
@@ -51,21 +52,24 @@ export default function ReportesPanel({ orgName, userName, cotoSlug }: ReportesP
 
   return (
     <div>
-      <Link
-        href={`/${cotoSlug}/guardia`}
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-400 hover:text-neutral-900 transition-colors mb-4 animate-fade-up"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M19 12H5M12 19l-7-7 7-7"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        Volver al panel
-      </Link>
+      <div className="relative z-50 mb-4 flex items-center justify-between gap-4 animate-fade-up">
+        <Link
+          href={`/${cotoSlug}/guardia`}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-400 hover:text-neutral-900 transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M19 12H5M12 19l-7-7 7-7"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Volver al panel
+        </Link>
+        <NotificationBell centerHref={`/${cotoSlug}/guardia/notificaciones`} />
+      </div>
 
       <div className="flex items-center gap-4 mb-10 animate-fade-up">
         <div className="w-11 h-11 rounded-xl bg-black flex items-center justify-center shrink-0">

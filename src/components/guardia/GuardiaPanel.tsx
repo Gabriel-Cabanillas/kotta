@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { AccessLog, VisitorType } from '@prisma/client'
 import { VISITOR_TYPES, VISITOR_LABELS } from '@/lib/constants/visitorTypes'
+import NotificationBell from '@/components/notifications/NotificationBell'
 
 type AccessLogWithGuard = AccessLog & {
   guard: { name: string }
@@ -130,7 +131,7 @@ export default function GuardiaPanel({
     <div>
       {/* ── Header ─────────────────────────────────────────── */}
       <div
-        className="flex flex-wrap items-start justify-between gap-4 mb-10 animate-fade-up"
+        className="relative z-50 flex flex-wrap items-start justify-between gap-4 mb-10 animate-fade-up"
       >
         <div className="flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-black flex items-center justify-center shrink-0">
@@ -159,6 +160,7 @@ export default function GuardiaPanel({
         </div>
 
         <div className="flex items-center gap-2">
+          <NotificationBell centerHref={`/${cotoSlug}/guardia/notificaciones`} />
           <Link
             href={`/${cotoSlug}/guardia/reportes`}
             className="btn-ghost text-xs py-2 px-3.5"

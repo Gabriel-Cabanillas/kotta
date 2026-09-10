@@ -13,12 +13,25 @@ import { getSession } from '@/lib/auth'
 
 export async function POST(req: Request) {
   const admin = await getSession()
-  if (!admin || admin.role !== 'ADMIN') return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  if (!admin || admin.role !== 'ADMIN' || !admin.orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 
   const { userId: targetUserId, isActive } = await req.json()
-  const target = await prisma.user.findUnique({ where: { id: targetUserId } })
-  if (!target || target.orgId !== admin.orgId) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+  if (typeof targetUserId !== 'string' || !targetUserId || typeof isActive !== 'boolean') {
+    return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+  }
+  const target = await prisma.user.findFirst({
+    where: { id: targetUserId, orgId: admin.orgId, role: { in: ['ADMIN', 'VECINO', 'PROVEEDOR', 'GUARDIA'] } },
+    select: { id: true, email: true },
+  })
+  if (!target) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
 
-  await prisma.user.update({ where: { id: targetUserId }, data: { isActive } })
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: target.id, orgId: admin.orgId }, data: { isActive } })
+    if (!isActive) {
+      await tx.session.deleteMany({ where: { userId: target.id } })
+      // Incluye invitaciones y registro: ningún código anterior puede reactivar la cuenta.
+      await tx.verificationCode.updateMany({ where: { email: target.email, used: false }, data: { used: true } })
+    }
+  })
   return NextResponse.json({ ok: true })
 }

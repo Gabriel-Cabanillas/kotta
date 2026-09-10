@@ -28,7 +28,7 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-[#F7F9FC] flex">
       <AdminSidebar coto={params.coto} />
       <div className="flex-1 flex flex-col min-w-0">
-        <AdminNavbar user={user} orgName={user.org?.name ?? ''} />
+        <AdminNavbar user={user} orgName={user.org?.name ?? ''} coto={params.coto} />
         <main className="flex-1 p-6 md:p-8">
           {children}
         </main>

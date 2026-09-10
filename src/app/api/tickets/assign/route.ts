@@ -13,15 +13,23 @@ import { getSession } from '@/lib/auth'
 
 export async function POST(req: Request) {
   const user = await getSession()
-  if (!user || user.role !== 'ADMIN') return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  if (!user || user.role !== 'ADMIN' || !user.orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 
   const { ticketId, providerId } = await req.json()
-  const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } })
-  if (!ticket || ticket.orgId !== user.orgId) return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 })
+  if (typeof ticketId !== 'string' || !ticketId || typeof providerId !== 'string' || !providerId) {
+    return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+  }
+  const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, orgId: user.orgId, reportedBy: { orgId: user.orgId } } })
+  if (!ticket) return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 })
+  const provider = await prisma.user.findFirst({
+    where: { id: providerId, orgId: user.orgId, role: 'PROVEEDOR', isActive: true },
+    select: { id: true },
+  })
+  if (!provider) return NextResponse.json({ error: 'Proveedor no encontrado' }, { status: 404 })
 
   await prisma.$transaction([
     prisma.workOrder.create({ data: { orgId: user.orgId!, ticketId, providerId, status: 'PENDIENTE' } }),
-    prisma.ticket.update({ where: { id: ticketId }, data: { status: 'ASIGNADO' } }),
+    prisma.ticket.update({ where: { id: ticketId, orgId: user.orgId }, data: { status: 'ASIGNADO' } }),
   ])
   return NextResponse.json({ ok: true })
 }

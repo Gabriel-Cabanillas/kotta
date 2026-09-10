@@ -6,30 +6,14 @@
 import { Prisma } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { stripe } from '@/lib/stripe'
+import { assertFinancialOperationsAllowed, executeReservedTransfer, FinancialReviewRequired, transferReference } from '@/lib/stripe/financial-safety'
 import { calcularDisponibleAhoraCoto, obtenerLiquidezPlataformaMx } from '@/lib/stripe/balance'
-import type Stripe from 'stripe'
-
-type StripeError = {
-  code?: string
-  message?: string
-}
 
 const ESTADOS_COMPROMETIDOS: Array<'PENDIENTE' | 'PROCESANDO' | 'PAGADO'> = [
   'PENDIENTE',
   'PROCESANDO',
   'PAGADO',
 ]
-
-function numeroDeIntento(referencia: string | null) {
-  const coincidencia = referencia?.match(/\|intento:(\d+)/)
-  return coincidencia ? Number(coincidencia[1]) : 0
-}
-
-function referenciaDeRetiro(solicitudId: string, intento: number, mensaje?: string) {
-  const base = `retiro:${solicitudId}|intento:${intento}`
-  return mensaje ? `${base} | ${mensaje}` : base
-}
 
 function mensajeDeDisponibilidad(disponibleAhora: number, enLiquidacion: number) {
   const moneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
@@ -103,6 +87,7 @@ export async function POST(req: Request) {
   for (let intentoTransaccion = 0; intentoTransaccion < 3; intentoTransaccion++) {
     try {
       reserva = await prisma.$transaction(async (tx) => {
+        await assertFinancialOperationsAllowed(tx, user.orgId!)
         const referenciaSolicitud = `retiro:${solicitudSegura}|`
         const existente = await tx.distribucionPago.findFirst({
           where: {
@@ -114,17 +99,6 @@ export async function POST(req: Request) {
         })
 
         if (existente) {
-          if (existente.estado === 'FALLIDO') {
-            const siguienteIntento = numeroDeIntento(existente.referencia) + 1
-            const reintentada = await tx.distribucionPago.update({
-              where: { id: existente.id },
-              data: {
-                estado: 'PENDIENTE',
-                referencia: referenciaDeRetiro(solicitudSegura, siguienteIntento),
-              },
-            })
-            return { tipo: 'DISTRIBUCION' as const, distribucion: reintentada }
-          }
           if (existente.estado === 'PAGADO') return { tipo: 'PAGADO' as const }
           if (existente.estado === 'REEMBOLSADO') return { tipo: 'REEMBOLSADO' as const }
           return { tipo: 'DISTRIBUCION' as const, distribucion: existente }
@@ -171,14 +145,22 @@ export async function POST(req: Request) {
             monto: montoNormalizado,
             estado: 'PENDIENTE',
             workOrderId: null,
-            referencia: referenciaDeRetiro(solicitudSegura, 1),
+            referencia: null,
           },
         })
 
-        return { tipo: 'DISTRIBUCION' as const, distribucion }
+        const reservada = await tx.distribucionPago.update({
+          where: { id: distribucion.id },
+          data: { referencia: transferReference(distribucion.id, {
+            amount: montoCentavos, currency: 'mxn', destination: cuentaCondominio.stripeAccountId,
+            metadata: { distribucionId: distribucion.id, orgId: user.orgId!, tipo: 'retiro_condominio' },
+          }, solicitudSegura) },
+        })
+        return { tipo: 'DISTRIBUCION' as const, distribucion: reservada }
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
       break
     } catch (error: any) {
+      if (error instanceof FinancialReviewRequired) return Response.json({ error: error.message }, { status: 409 })
       if (error.code === 'P2034' && intentoTransaccion < 2) continue
       throw error
     }
@@ -220,55 +202,15 @@ export async function POST(req: Request) {
     )
   }
 
-  const intento = Math.max(1, numeroDeIntento(distribucion.referencia))
-  let transfer: Stripe.Transfer
-
   try {
-    transfer = await stripe.transfers.create(
-      {
-        amount: montoCentavos,
-        currency: 'mxn',
-        destination: cuentaCondominio.stripeAccountId,
-        metadata: {
-          distribucionId: distribucion.id,
-          orgId: user.orgId,
-          tipo: 'retiro_condominio',
-        },
-      },
-      { idempotencyKey: `retiro-condominio-${distribucion.id}-${intento}` }
-    )
-  } catch (error) {
-    const stripeError = error as StripeError
-    const mensaje = stripeError.message ?? 'No fue posible iniciar el retiro'
-    await prisma.distribucionPago.update({
-      where: { id: distribucion.id },
-      data: {
-        estado: 'FALLIDO',
-        referencia: referenciaDeRetiro(solicitudSegura, intento, mensaje),
-      },
+    const transfer = await executeReservedTransfer(distribucion, {
+      orgId: user.orgId, amount: montoCentavos,
+      destination: cuentaCondominio.stripeAccountId, accountId: cuentaCondominio.id,
     })
-
-    if (stripeError.code === 'balance_insufficient') {
-      return Response.json(
-        { error: 'La disponibilidad de Stripe cambió mientras se procesaba el retiro. Intenta nuevamente para verificar el monto disponible ahora.' },
-        { status: 400 }
-      )
-    }
-
-    console.error('Error al transferir saldo al condominio:', error)
-    return Response.json(
-      { error: 'No fue posible iniciar el retiro. Intenta nuevamente.' },
-      { status: 502 }
-    )
+    return Response.json({ transferId: transfer.id, estado: 'PAGADO' })
+  } catch (error) {
+    if (error instanceof FinancialReviewRequired) return Response.json({ error: error.message }, { status: 409 })
+    console.error('Retiro pendiente de confirmación:', error)
+    return Response.json({ error: 'Resultado incierto. La reserva se conserva; el reintento utilizará la misma operación.' }, { status: 503 })
   }
-
-  await prisma.distribucionPago.update({
-    where: { id: distribucion.id },
-    data: {
-      stripeTransferId: transfer.id,
-      estado: 'PAGADO',
-    },
-  })
-
-  return Response.json({ transferId: transfer.id, estado: 'PAGADO' })
 }

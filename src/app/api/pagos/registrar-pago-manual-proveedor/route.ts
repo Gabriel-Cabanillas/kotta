@@ -58,7 +58,7 @@ export async function POST(request: Request) {
   let workOrderId: string | null = null
   if (cuerpo.ordenId) {
     const orden = await prisma.workOrder.findFirst({
-      where: { id: cuerpo.ordenId, orgId: user.orgId, providerId: proveedor.id },
+      where: { id: cuerpo.ordenId, orgId: user.orgId, providerId: proveedor.id, ticket: { orgId: user.orgId, reportedBy: { orgId: user.orgId } } },
       select: { id: true },
     })
     if (!orden) return Response.json({ error: 'La orden no corresponde a este proveedor o condominio.' }, { status: 400 })

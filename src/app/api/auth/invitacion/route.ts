@@ -21,17 +21,21 @@ import { getSession } from '@/lib/auth'
 
 export async function POST(req: Request) {
   try {
-    const { email, nombre, role, houseNumber, orgId } = await req.json()
+    const { email, nombre, role, houseNumber, orgId: requestedOrgId } = await req.json()
 
     // Verificar que quien invita es admin
     const admin = await getSession()
-    if (!admin || admin.role !== 'ADMIN') {
+    if (!admin || admin.role !== 'ADMIN' || !admin.orgId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
-    if (admin.orgId !== orgId) {
+    if (requestedOrgId !== undefined && admin.orgId !== requestedOrgId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
+    if (!['ADMIN', 'VECINO', 'PROVEEDOR', 'GUARDIA'].includes(role)) {
+      return NextResponse.json({ error: 'Rol no permitido' }, { status: 403 })
+    }
+    const orgId = admin.orgId
 
     // Verificar si el correo ya existe
     const existing = await (prisma as any).user.findUnique({
