@@ -11,17 +11,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import { v2 as cloudinary } from 'cloudinary'
-
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-})
+import { uploadImage, imageUploadErrorResponse } from '@/lib/cloudinary-upload'
 
 export async function POST(req: Request) {
   const admin = await getSession()
-  if (!admin || admin.role !== 'ADMIN') return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  if (!admin || admin.role !== 'ADMIN' || !admin.orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 
   const formData = await req.formData()
 
@@ -35,7 +29,7 @@ export async function POST(req: Request) {
   const requiresApproval  = formData.get('requiresApproval') === 'true'
   const extraCost         = formData.get('extraCost') as string | null
   const rules             = formData.get('rules') as string | null
-  const imagen            = formData.get('imagen') as File | null
+  const imagen            = formData.get('imagen')
 
   if (!name || !name.trim()) {
     return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 })
@@ -56,32 +50,11 @@ export async function POST(req: Request) {
 
   // Subir imagen si viene
   let imageUrl: string | null = null
-  if (imagen && imagen.size > 0) {
+  if (imagen !== null) {
     try {
-      const bytes  = await imagen.arrayBuffer()
-      const buffer = Buffer.from(bytes)
-
-      const uploadResult = await new Promise<any>((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          {
-            folder:         `kotta/${admin.orgId}/amenidades`,
-            transformation: [{ quality: 'auto', fetch_format: 'auto' }],
-          },
-          (error, result) => {
-            if (error) {
-              console.error('Cloudinary error:', error)
-              reject(error)
-            } else {
-              resolve(result)
-            }
-          }
-        ).end(buffer)
-      })
-
-      imageUrl = uploadResult.secure_url
+      imageUrl = await uploadImage(imagen, admin.orgId, 'amenidades')
     } catch (err) {
-      console.error('Error subiendo imagen:', err)
-      // Continuamos sin imagen si falla
+      return imageUploadErrorResponse(err)
     }
   }
 

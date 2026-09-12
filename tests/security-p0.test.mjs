@@ -23,6 +23,7 @@ function load(file, { prisma = forbidden, session = admin, overrides = {}, expos
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true,
   } }).outputText
   const dependencies = {
+    'server-only': {},
     'next/server': { NextResponse: class extends Response {
       static json(body, init) { const response = Response.json(body, init); response.cookies = { set() {} }; return response }
       static next() { return new Response(null, { headers: { 'x-middleware-next': '1' } }) }
@@ -51,6 +52,7 @@ function load(file, { prisma = forbidden, session = admin, overrides = {}, expos
   const exports = {}
   const mockRequire = (id) => {
     if (Object.hasOwn(dependencies, id)) return dependencies[id]
+    if (id === '@/lib/cloudinary-upload') return load('src/lib/cloudinary-upload.ts', { prisma, overrides })
     if (id === '@/lib/otp') return load('src/lib/otp.ts', { prisma, overrides })
     if (id === '@/lib/kotta-subscriptions/status') return load('src/lib/kotta-subscriptions/status.ts', { prisma })
     if (id === '@/lib/kotta-subscriptions/dates') return load('src/lib/kotta-subscriptions/dates.ts', { prisma })

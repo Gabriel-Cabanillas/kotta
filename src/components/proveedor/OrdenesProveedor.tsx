@@ -384,7 +384,7 @@ export default function OrdenesProveedor({ ordenes }: { ordenes: Orden[] }) {
                   <input
                     ref={fileRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     capture="environment"
                     className="hidden"
                     onChange={() => handleSubirFoto(selected.id)}

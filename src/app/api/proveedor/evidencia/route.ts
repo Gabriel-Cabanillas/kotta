@@ -9,13 +9,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { v2 as cloudinary } from 'cloudinary'
-
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-})
+import { uploadImage, imageUploadErrorResponse } from '@/lib/cloudinary-upload'
 
 export async function POST(req: Request) {
   const user = await getSession()
@@ -24,7 +18,7 @@ export async function POST(req: Request) {
   }
 
   const formData = await req.formData()
-  const file     = formData.get('file') as File
+  const file     = formData.get('file')
   const ordenId  = formData.get('ordenId') as string
 
   if (!file || !ordenId) {
@@ -37,29 +31,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
   }
 
-  // Subir a Cloudinary
-  const bytes  = await file.arrayBuffer()
-  const buffer = Buffer.from(bytes)
-
-  const uploadResult = await new Promise<any>((resolve, reject) => {
-    cloudinary.uploader.upload_stream(
-      { folder: `kotta/${user.orgId}/evidencias` },
-      (error, result) => {
-        if (error) {
-          console.error('Cloudinary error:', error)
-          reject(error)
-        }
-        else resolve(result)
-      }
-    ).end(buffer)
-  })
+  let imageUrl: string
+  try {
+    imageUrl = await uploadImage(file, user.orgId, 'evidencias')
+  } catch (error) {
+    return imageUploadErrorResponse(error)
+  }
 
   // Guardar URL y marcar completada
   await (prisma as any).$transaction([
     (prisma as any).workOrder.update({
       where: { id: ordenId, orgId: user.orgId, providerId: user.id },
       data: {
-        afterPhotoUrl: uploadResult.secure_url,
+        afterPhotoUrl: imageUrl,
         status:        'COMPLETADA',
         closedAt:      new Date(),
       },
@@ -70,5 +54,5 @@ export async function POST(req: Request) {
     }),
   ])
 
-  return NextResponse.json({ ok: true, url: uploadResult.secure_url })
+  return NextResponse.json({ ok: true, url: imageUrl })
 }

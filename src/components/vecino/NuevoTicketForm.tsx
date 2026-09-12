@@ -120,7 +120,7 @@ export default function NuevoTicketForm({
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
           capture="environment"
           className="hidden"
           onChange={(e) => setFoto(e.target.files?.[0] ?? null)}
